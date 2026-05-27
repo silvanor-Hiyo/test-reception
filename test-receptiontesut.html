@@ -37,7 +37,6 @@ body {
   flex-direction: column;
 }
 
-/* ヘッダー */
 .header {
   background: var(--navy);
   padding: 16px 20px 12px;
@@ -65,7 +64,6 @@ body {
   margin-top: 2px;
 }
 
-/* メインエリア */
 .main {
   flex: 1;
   display: flex;
@@ -75,14 +73,12 @@ body {
   overflow-y: auto;
 }
 
-/* スキャナーカード */
 .scanner-card {
   background: rgba(255,255,255,0.07);
   border: 1px solid rgba(200,168,75,0.3);
   border-radius: 16px;
   padding: 16px;
 }
-
 .scanner-title {
   font-size: 13px;
   font-weight: 700;
@@ -91,20 +87,17 @@ body {
   text-align: center;
   letter-spacing: 1px;
 }
-
 #qr-reader {
   width: 100%;
   border-radius: 10px;
   overflow: hidden;
   background: #000;
 }
-
 #qr-reader video {
   border-radius: 10px;
   width: 100% !important;
 }
 
-/* ボタン */
 .btn {
   display: flex;
   align-items: center;
@@ -140,7 +133,6 @@ body {
   padding: 10px 20px;
 }
 
-/* 結果表示 */
 .result {
   border-radius: 16px;
   padding: 20px;
@@ -167,7 +159,6 @@ body {
 .result.warning .result-message { color: var(--warning); }
 .result.error   .result-message { color: var(--danger); }
 
-/* 手動入力 */
 .manual-card {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
@@ -180,10 +171,7 @@ body {
   margin-bottom: 10px;
   text-align: center;
 }
-.manual-row {
-  display: flex;
-  gap: 8px;
-}
+.manual-row { display: flex; gap: 8px; }
 .manual-input {
   flex: 1;
   padding: 12px 14px;
@@ -210,7 +198,6 @@ body {
   white-space: nowrap;
 }
 
-/* 受付数カウンター */
 .counter {
   text-align: center;
   padding: 12px;
@@ -229,7 +216,7 @@ body {
   margin-top: 2px;
 }
 
-/* GAS URL設定画面 */
+/* ===== GAS URL設定画面 ===== */
 .setup {
   display: flex;
   flex-direction: column;
@@ -286,8 +273,12 @@ body {
 <!-- GAS URL設定画面 -->
 <div class="setup" id="setupArea">
   <div class="setup-title">初期設定</div>
-  <p class="setup-desc">GAS WebアプリのURLを入力してください。<br>一度設定すれば次回から不要です。</p>
-  <input type="url" class="setup-input" id="gasUrlInput" placeholder="https://script.google.com/macros/s/xxx/exec">
+  <p class="setup-desc">
+    GAS WebアプリのURLを入力してください。<br>
+    一度設定すれば次回から不要です。
+  </p>
+  <input type="url" class="setup-input" id="gasUrlInput"
+    placeholder="https://script.google.com/macros/s/xxx/exec">
   <button class="btn btn-gold" onclick="saveGasUrl()">接続して受付を開始</button>
   <div class="setup-alert" id="setupAlert"></div>
 </div>
@@ -295,13 +286,11 @@ body {
 <!-- メイン受付画面 -->
 <div class="main" id="mainArea" style="display:none;">
 
-  <!-- カウンター -->
   <div class="counter">
     <div class="counter-num" id="checkinCount">0</div>
     <div class="counter-label">本日の受付数</div>
   </div>
 
-  <!-- 結果表示 -->
   <div class="result" id="result">
     <div class="result-icon" id="resultIcon"></div>
     <div class="result-name" id="resultName"></div>
@@ -310,7 +299,6 @@ body {
     <div class="result-message" id="resultMessage"></div>
   </div>
 
-  <!-- スキャナー -->
   <div class="scanner-card">
     <div class="scanner-title">📷 QRコードスキャン</div>
     <div id="qr-reader"></div>
@@ -320,17 +308,19 @@ body {
     </div>
   </div>
 
-  <!-- 手動入力 -->
   <div class="manual-card">
     <div class="manual-title">手動入力（QRコードを忘れた場合）</div>
     <div class="manual-row">
-      <input type="text" class="manual-input" id="manualId" placeholder="来場者ID（例: V-ABC123）">
+      <input type="text" class="manual-input" id="manualId"
+        placeholder="来場者ID（例: V-ABC123）"
+        autocomplete="off" autocorrect="off" spellcheck="false">
       <button class="manual-btn" onclick="manualCheckin()">受付</button>
     </div>
   </div>
 
-  <!-- 設定リセット -->
-  <button class="btn btn-outline" onclick="resetSetup()" style="margin-bottom:8px;">⚙️ GAS URL設定を変更</button>
+  <button class="btn btn-outline" onclick="resetSetup()" style="margin-bottom:8px;">
+    ⚙️ GAS URL設定を変更
+  </button>
 
 </div>
 
@@ -340,12 +330,13 @@ let scanner = null;
 let checkinCount = 0;
 let isScanning = false;
 
+// ============================================================
 // 初期化
+// ============================================================
 function init() {
   if (GAS_URL) {
     document.getElementById('setupArea').style.display = 'none';
     document.getElementById('mainArea').style.display = 'flex';
-    document.getElementById('gasUrlInput').value = GAS_URL;
     loadCheckinCount();
   } else {
     document.getElementById('setupArea').style.display = 'flex';
@@ -353,45 +344,35 @@ function init() {
   }
 }
 
-// GAS URL保存
-async function saveGasUrl() {
+// ============================================================
+// GAS URL保存（接続テストなし・そのまま保存）
+// ============================================================
+function saveGasUrl() {
   const url = document.getElementById('gasUrlInput').value.trim();
   const alertEl = document.getElementById('setupAlert');
 
-  if (!url) {
+  if (!url || !url.startsWith('https://script.google.com/')) {
     alertEl.className = 'setup-alert error show';
-    alertEl.textContent = 'URLを入力してください';
+    alertEl.textContent = 'URLが正しくありません。script.google.com から始まるURLを入力してください。';
     return;
   }
 
-  alertEl.className = 'setup-alert show';
-  alertEl.style.background = '#eef2ff';
-  alertEl.style.color = '#1a3a9e';
-  alertEl.textContent = '接続テスト中...';
+  GAS_URL = url;
+  localStorage.setItem('reception_gas_url', url);
 
-  try {
-    const res = await fetch(url + '?action=ping');
-    const data = await res.json();
-    if (!data.success) throw new Error('接続失敗');
+  alertEl.className = 'setup-alert success show';
+  alertEl.textContent = '保存しました！受付を開始します。';
 
-    GAS_URL = url;
-    localStorage.setItem('reception_gas_url', url);
-    alertEl.className = 'setup-alert success show';
-    alertEl.textContent = '接続成功！';
-
-    setTimeout(() => {
-      document.getElementById('setupArea').style.display = 'none';
-      document.getElementById('mainArea').style.display = 'flex';
-      loadCheckinCount();
-    }, 800);
-
-  } catch(e) {
-    alertEl.className = 'setup-alert error show';
-    alertEl.textContent = '接続できませんでした。URLを確認してください。';
-  }
+  setTimeout(() => {
+    document.getElementById('setupArea').style.display = 'none';
+    document.getElementById('mainArea').style.display = 'flex';
+    loadCheckinCount();
+  }, 800);
 }
 
+// ============================================================
 // 設定リセット
+// ============================================================
 function resetSetup() {
   stopScanner();
   localStorage.removeItem('reception_gas_url');
@@ -400,7 +381,9 @@ function resetSetup() {
   document.getElementById('mainArea').style.display = 'none';
 }
 
+// ============================================================
 // 受付数を取得
+// ============================================================
 async function loadCheckinCount() {
   try {
     const res = await fetch(GAS_URL + '?action=getCheckins');
@@ -412,7 +395,9 @@ async function loadCheckinCount() {
   } catch(e) {}
 }
 
+// ============================================================
 // スキャナー起動
+// ============================================================
 function startScanner() {
   if (isScanning) return;
   isScanning = true;
@@ -440,7 +425,9 @@ function startScanner() {
   });
 }
 
+// ============================================================
 // スキャナー停止
+// ============================================================
 function stopScanner() {
   isScanning = false;
   if (scanner) {
@@ -451,7 +438,9 @@ function stopScanner() {
   document.getElementById('stopBtn').style.display = 'none';
 }
 
+// ============================================================
 // 手動受付
+// ============================================================
 async function manualCheckin() {
   const id = document.getElementById('manualId').value.trim();
   if (!id) return;
@@ -459,7 +448,9 @@ async function manualCheckin() {
   document.getElementById('manualId').value = '';
 }
 
+// ============================================================
 // 受付処理
+// ============================================================
 async function processCheckin(visitorId) {
   try {
     const res = await fetch(GAS_URL + '?action=checkin&visitorId=' + encodeURIComponent(visitorId));
@@ -486,7 +477,9 @@ async function processCheckin(visitorId) {
   }
 }
 
+// ============================================================
 // 結果表示
+// ============================================================
 function showResult(type, icon, name, company, dept, message) {
   const el = document.getElementById('result');
   el.className = 'result ' + type + ' show';
@@ -498,7 +491,9 @@ function showResult(type, icon, name, company, dept, message) {
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+// ============================================================
 // ビープ音
+// ============================================================
 function playBeep(freq) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
