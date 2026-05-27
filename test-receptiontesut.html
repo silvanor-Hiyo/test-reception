@@ -697,16 +697,34 @@ function showResult(result) {
 // ============================================================
 function resetPage() {
   lastScannedId = null;
+  scanCooldown = false;  // ★ クールダウンを必ずリセット
+
   document.getElementById('resultBox').className = 'result-box';
   document.getElementById('confirmButtons').style.display = 'none';
   document.getElementById('nextButton').style.display = 'none';
   document.getElementById('cameraSection').style.display = 'block';
 
-  // カメラが起動中なら再開
-  if (html5QrCode && isScanning) {
-    try { html5QrCode.resume(); } catch(e) {}
-    document.getElementById('cameraStatus').textContent = 'スキャン待機中';
-    document.getElementById('cameraStatus').className = 'camera-status active';
+  // カメラを一度止めて再起動（resumeより確実）
+  if (html5QrCode) {
+    try {
+      html5QrCode.stop().then(() => {
+        isScanning = false;
+        html5QrCode = null;
+        startCamera();  // 再起動
+      }).catch(() => {
+        isScanning = false;
+        html5QrCode = null;
+        startCamera();
+      });
+    } catch(e) {
+      isScanning = false;
+      html5QrCode = null;
+      startCamera();
+    }
+  } else {
+    // カメラがなければスタートボタンを表示
+    document.getElementById('startBtn').style.display = 'flex';
+    document.getElementById('cameraCard').style.display = 'none';
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
