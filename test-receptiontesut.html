@@ -705,22 +705,22 @@ function resetPage() {
   document.getElementById('nextButton').style.display = 'none';
   document.getElementById('cameraSection').style.display = 'block';
 
-  // カメラを一度止めて再起動（resumeより確実）
+  // カメラを一度止めて再起動（少し待ってから確実に再起動）
   if (html5QrCode) {
     try {
       html5QrCode.stop().then(() => {
         isScanning = false;
         html5QrCode = null;
-        startCamera();  // 再起動
+        setTimeout(startCamera, 500);  // 500ms待ってから再起動
       }).catch(() => {
         isScanning = false;
         html5QrCode = null;
-        startCamera();
+        setTimeout(startCamera, 500);
       });
     } catch(e) {
       isScanning = false;
       html5QrCode = null;
-      startCamera();
+      setTimeout(startCamera, 500);
     }
   } else {
     // カメラがなければスタートボタンを表示
