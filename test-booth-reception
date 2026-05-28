@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ブース受付 - 永和物産 食品展示会2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root {
+  --navy: #0d1f5c;
+  --navy-mid: #1a3a9e;
+  --gold: #c8a84b;
+  --gold-light: #e8cc80;
+  --gold-pale: #f7f0dc;
+  --cream: #faf7f0;
+  --white: #ffffff;
+  --text: #1a1a2e;
+  --text-light: #6b6b8a;
+  --border: #ddd5be;
+  --success: #1a6e35;
+  --success-bg: #e8f7ed;
+  --warning: #92400e;
+  --warning-bg: #fef3c7;
+  --danger: #991b1b;
+  --danger-bg: #fef2f2;
+  --radius: 14px;
+  --shadow: 0 4px 20px rgba(13,31,92,0.12);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* ヘッダー */
+.header {
+  background: linear-gradient(160deg, #1a3a9e 0%, #0d1f5c 100%);
+  border-bottom: 3px solid var(--gold);
+  padding: 16px 20px;
+  text-align: center;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 12px rgba(13,31,92,0.4);
+}
+.header-event { font-size: 10px; letter-spacing: 3px; color: rgba(200,168,75,0.8); font-weight: 600; margin-bottom: 4px; }
+.header h1 { font-size: 18px; font-weight: 700; color: white; margin-bottom: 4px; }
+.header-booth { font-size: 15px; color: var(--gold-light); font-weight: 600; }
+
+main { max-width: 560px; margin: 0 auto; padding: 16px; }
+
+/* カード */
+.card {
+  background: var(--white); border-radius: var(--radius);
+  padding: 20px; margin-bottom: 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.card::before {
+  content: ''; position: absolute;
+  top: 0; left: 20px; right: 20px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.5;
+}
+.card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+/* カメラエリア */
+.camera-wrap {
+  position: relative; border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 16px;
+  border: 2px solid var(--gold); box-shadow: var(--shadow);
+  background: #000; display: none;
+}
+.camera-wrap.active { display: block; }
+.camera-header {
+  background: var(--navy); padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.camera-title { font-size: 14px; font-weight: 700; color: var(--gold-light); display: flex; align-items: center; gap: 8px; }
+.camera-status { font-size: 11px; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 12px; }
+.camera-status.scanning { color: #4caf50; background: rgba(76,175,80,0.15); }
+.camera-status.paused { color: var(--gold-light); background: rgba(200,168,75,0.15); }
+
+#qr-reader { width: 100%; background: #000; }
+#qr-reader video { width: 100% !important; max-height: 300px; object-fit: cover; }
+#qr-reader__scan_region { background: transparent !important; }
+#qr-reader__scan_region img { display: none !important; }
+#qr-reader__dashboard { display: none !important; }
+
+.camera-guide {
+  background: rgba(0,0,0,0.6); padding: 10px 16px;
+  text-align: center; font-size: 13px; color: rgba(255,255,255,0.8);
+}
+.camera-stop-btn { background: var(--navy); padding: 10px 16px; }
+
+/* オーバーレイ */
+.overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 20px; z-index: 10;
+  animation: fadeIn 0.3s ease;
+}
+.overlay.show { display: flex; }
+.overlay.preview { background: rgba(13,31,92,0.92); }
+.overlay.success { background: rgba(26,110,53,0.93); }
+.overlay.duplicate { background: rgba(146,64,14,0.93); }
+.overlay.error { background: rgba(139,26,26,0.93); }
+.overlay.loading { background: rgba(13,31,92,0.85); }
+@keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+
+.overlay-icon { font-size: 48px; margin-bottom: 8px; }
+.overlay-name { font-size: 22px; font-weight: 700; color: white; margin-bottom: 4px; text-align: center; }
+.overlay-company { font-size: 13px; color: rgba(255,255,255,0.8); margin-bottom: 8px; text-align: center; line-height: 1.5; }
+.overlay-message { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); text-align: center; }
+.overlay-time { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+.overlay-buttons { display: flex; gap: 10px; margin-top: 16px; width: 100%; }
+.overlay-buttons .btn { flex: 1; }
+
+/* カメラ起動ボタン */
+.btn-camera-start {
+  width: 100%; padding: 20px;
+  background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+  color: var(--gold-light); border: 2px solid var(--gold);
+  border-radius: var(--radius); font-size: 17px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 16px; box-shadow: var(--shadow); transition: all 0.2s;
+}
+.btn-camera-start .icon { font-size: 30px; }
+
+/* ボタン */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 12px 20px; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-primary { background: linear-gradient(135deg, var(--gold) 0%, #b8922e 100%); color: var(--navy); }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1a6e35); color: white; }
+.btn-danger { background: linear-gradient(135deg, #e53935, #c62828); color: white; }
+.btn-outline { background: rgba(255,255,255,0.15); color: white; border: 1.5px solid rgba(255,255,255,0.4); }
+.btn-outline-dark { background: transparent; color: var(--navy-mid); border: 1.5px solid var(--border); }
+.btn-block { width: 100%; }
+.btn-row { display: flex; gap: 8px; }
+
+/* 手動入力 */
+.manual-row { display: flex; gap: 8px; }
+.input-field {
+  flex: 1; padding: 12px 14px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-size: 15px; font-family: inherit;
+  color: var(--text); outline: none; transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.input-field:focus { border-color: var(--navy-mid); }
+.input-field::placeholder { color: #bbb8d0; font-size: 13px; }
+
+/* 来場者パネル */
+.visitor-found {
+  background: var(--success-bg); border: 2px solid #22c55e;
+  border-radius: 12px; padding: 16px; margin-bottom: 12px;
+}
+.v-name { font-size: 22px; font-weight: 700; color: var(--navy); }
+.v-company { font-size: 13px; color: var(--text-light); margin-top: 4px; }
+
+/* フォーム */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+.form-group select, .form-group input, .form-group textarea {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 15px; font-family: inherit;
+  outline: none; transition: border-color 0.2s; -webkit-appearance: none;
+}
+.form-group select:focus, .form-group input:focus { border-color: var(--gold); }
+
+/* アラート */
+.alert { padding: 12px 16px; border-radius: 8px; margin-top: 12px; font-size: 14px; display: none; }
+.alert.show { display: block; }
+.alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #a8ddb8; }
+.alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
+
+/* サンプルテーブル */
+.table-wrap { overflow-x: auto; margin: 8px -4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-weight: 600; color: var(--text-light); font-size: 12px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.tag-pending { background: var(--warning-bg); color: var(--warning); }
+.tag-done { background: var(--success-bg); color: var(--success); }
+
+/* エラー画面 */
+.error-screen { text-align: center; padding: 60px 20px; }
+.error-screen .icon { font-size: 60px; margin-bottom: 16px; }
+.error-screen h2 { color: #c62828; margin-bottom: 8px; font-size: 20px; }
+.error-screen p { font-size: 14px; color: var(--text-light); line-height: 1.7; }
+
+/* スピナー */
+.spinner {
+  display: inline-block; width: 36px; height: 36px;
+  border: 4px solid rgba(255,255,255,0.2);
+  border-top-color: white; border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin-bottom: 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* トースト */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--navy); color: white;
+  padding: 12px 24px; border-radius: 30px;
+  font-size: 14px; font-weight: 600;
+  border: 1px solid var(--gold);
+  box-shadow: 0 4px 20px rgba(13,31,92,0.3);
+  z-index: 999; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-event">EIWA BUSSAN FOOD EXHIBITION 2026</div>
+  <h1>ブース受付システム</h1>
+  <div class="header-booth" id="headerBoothName">読み込み中...</div>
+</div>
+
+<!-- エラー画面 -->
+<div id="errorScreen" class="error-screen" style="display:none;">
+  <div class="icon">🔒</div>
+  <h2>アクセスできません</h2>
+  <p>URLが正しくないか、有効期限が切れています。<br>永和物産の担当者にお問い合わせください。</p>
+</div>
+
+<!-- メインコンテンツ -->
+<div id="mainContent" style="display:none;">
+<main>
+
+  <!-- カメラ起動ボタン -->
+  <button class="btn-camera-start" id="startBtn" onclick="startCamera()">
+    <span class="icon">📷</span>
+    <span>カメラを起動してQRをスキャン</span>
+  </button>
+
+  <!-- カメラ＋オーバーレイ -->
+  <div class="camera-wrap" id="cameraWrap">
+    <div class="camera-header">
+      <div class="camera-title"><span>📷</span> QRコードをスキャン中</div>
+      <div class="camera-status scanning" id="cameraStatus">スキャン待機中</div>
+    </div>
+    <div id="qr-reader"></div>
+    <div class="camera-guide">来場者の入場証QRコードをカメラに向けてください</div>
+
+    <!-- オーバーレイ -->
+    <div class="overlay" id="overlay">
+      <div class="overlay-icon" id="overlayIcon"></div>
+      <div class="overlay-name" id="overlayName"></div>
+      <div class="overlay-company" id="overlayCompany"></div>
+      <div class="overlay-message" id="overlayMessage"></div>
+      <div class="overlay-time" id="overlayTime"></div>
+      <div class="overlay-buttons" id="overlayButtons" style="display:none;">
+        <button class="btn btn-danger" onclick="cancelScan()">❌ キャンセル</button>
+        <button class="btn btn-primary" onclick="confirmVisit()">✅ 記録する</button>
+      </div>
+      <div id="overlayNext" style="display:none; margin-top:16px; width:100%;">
+        <button class="btn btn-outline btn-block" onclick="resetScan()">次の来場者へ →</button>
+      </div>
+    </div>
+
+    <div class="camera-stop-btn">
+      <button class="btn btn-outline-dark btn-block" onclick="stopCamera()" style="font-size:13px;padding:10px;">
+        カメラを停止する
+      </button>
+    </div>
+  </div>
+
+  <!-- 手動入力 -->
+  <div class="card">
+    <div class="card-title"><span>⌨️</span>手動入力（QRが読めない場合）</div>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">
+      来場者IDを直接入力できます（例：V-ABC123）
+    </p>
+    <div class="manual-row">
+      <input type="text" class="input-field" id="manualId"
+        placeholder="V-XXXXXX"
+        style="font-family:monospace;text-transform:uppercase;"
+        onkeydown="if(event.key==='Enter') manualProcess()">
+      <button class="btn btn-primary" onclick="manualProcess()">確認</button>
+    </div>
+  </div>
+
+  <!-- 来場者パネル（サンプル依頼） -->
+  <div id="visitorPanel" style="display:none;">
+    <div class="visitor-found">
+      <div class="v-name" id="visitorName"></div>
+      <div class="v-company" id="visitorCompany"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>📦</span>サンプル依頼</div>
+      <div class="form-group">
+        <label>商品名</label>
+        <select id="sr-product"><option value="">商品を選択...</option></select>
+      </div>
+      <div class="form-group">
+        <label>数量</label>
+        <input type="number" id="sr-quantity" value="1" min="1" max="99">
+      </div>
+      <div class="form-group">
+        <label>備考（配送先・用途など）</label>
+        <textarea id="sr-notes" rows="2" placeholder="例：〇〇支店へ発送 / 社内試食用" style="resize:none;"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success btn-block" onclick="submitSampleRequest()">📦 サンプル依頼を送信</button>
+        <button class="btn btn-outline-dark" onclick="recordVisitOnly()" style="white-space:nowrap;">訪問のみ</button>
+      </div>
+      <div class="alert" id="sampleAlert"></div>
+    </div>
+  </div>
+
+  <!-- サンプル依頼一覧 -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="card-title" style="margin:0"><span>📋</span>本日のサンプル依頼</div>
+      <button class="btn btn-outline-dark" onclick="loadSamples()" style="padding:6px 12px;font-size:12px;">更新</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>数量</th><th>状態</th></tr>
+        </thead>
+        <tbody id="sampleTable">
+          <tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8IQaf54k3qVoCGfGcueOZWcMUKiFSWQH1bj3Ic-CB4ZLdIg/exec';
+const urlParams = new URLSearchParams(window.location.search);
+const TOKEN = urlParams.get('token') || '';
+
+let boothInfo = null;
+let currentVisitorId = null;
+let currentVisitorData = null;
+let html5QrCode = null;
+let isScanning = false;
+let scanPaused = false;
+let scanCooldown = false;
+
+// ============================================================
+// 初期化
+// ============================================================
+async function init() {
+  if (!TOKEN) {
+    showError();
+    return;
+  }
+  try {
+    const result = await apiGet('getBoothByToken', { token: TOKEN });
+    boothInfo = result.booth;
+    document.getElementById('headerBoothName').textContent =
+      (boothInfo.booth_number ? boothInfo.booth_number + '番　' : '') + boothInfo.company;
+    document.getElementById('errorScreen').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    setProductOptions(boothInfo.products);
+    await loadSamples();
+  } catch(e) {
+    showError();
+  }
+}
+
+function showError() {
+  document.getElementById('errorScreen').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('headerBoothName').textContent = 'アクセスエラー';
+}
+
+function setProductOptions(productsStr) {
+  const sel = document.getElementById('sr-product');
+  const products = String(productsStr || '').split(',').map(p => p.trim()).filter(Boolean);
+  sel.innerHTML = '<option value="">商品を選択...</option>' +
+    products.map(p => `<option value="${p}">${p}</option>`).join('') +
+    '<option value="その他">その他</option>';
+}
+
+// ============================================================
+// API
+// ============================================================
+async function apiGet(action, params = {}) {
+  let url = GAS_URL + '?action=' + action;
+  for (let key in params) url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (!data.success && data.error) throw new Error(data.error);
+  return data;
+}
+
+async function apiPost(action, body = {}) {
+  const url = GAS_URL + '?action=' + action;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  });
+  const data = await resp.json();
+  if (!data.success && data.error) throw new Error(data.error);
+  return data;
+}
+
+// ============================================================
+// カメラ
+// ============================================================
+function startCamera() {
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('cameraWrap').classList.add('active');
+
+  html5QrCode = new Html5Qrcode('qr-reader');
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    { fps: 15, qrbox: { width: 260, height: 260 }, aspectRatio: 1.0 },
+    onQrSuccess,
+    () => {}
+  ).then(() => {
+    isScanning = true;
+    scanPaused = false;
+    setStatus('scanning', 'スキャン待機中');
+  }).catch(() => {
+    showToast('カメラの起動に失敗しました');
+    document.getElementById('startBtn').style.display = 'flex';
+    document.getElementById('cameraWrap').classList.remove('active');
+  });
+}
+
+function stopCamera() {
+  hideOverlay();
+  if (html5QrCode && isScanning) {
+    html5QrCode.stop().then(() => {
+      isScanning = false;
+      html5QrCode = null;
+    });
+  }
+  document.getElementById('cameraWrap').classList.remove('active');
+  document.getElementById('startBtn').style.display = 'flex';
+}
+
+function setStatus(type, text) {
+  const el = document.getElementById('cameraStatus');
+  el.textContent = text;
+  el.className = 'camera-status ' + type;
+}
+
+// ============================================================
+// QRスキャン成功
+// ============================================================
+function onQrSuccess(decodedText) {
+  if (scanCooldown || scanPaused) return;
+  scanCooldown = true;
+  setTimeout(() => { scanCooldown = false; }, 3000);
+
+  let visitorId = decodedText.trim().toUpperCase();
+  // URLの場合はIDだけ取り出す
+  try {
+    const url = new URL(decodedText);
+    const id = url.searchParams.get('id');
+    if (id) visitorId = id.toUpperCase();
+  } catch(e) {}
+
+  if (!visitorId) { showToast('QRコードを認識できませんでした'); return; }
+
+  scanPaused = true;
+  if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
+  setStatus('paused', '確認中...');
+
+  showOverlayLoading();
+  processVisitor(visitorId);
+}
+
+// ============================================================
+// 来場者処理
+// ============================================================
+async function processVisitor(visitorId) {
+  currentVisitorId = visitorId;
+  try {
+    const result = await apiGet('getVisitorInfo', { visitorId: visitorId });
+    currentVisitorData = result.visitor;
+    showOverlayPreview(result.visitor);
+  } catch(e) {
+    showOverlayError('来場者が見つかりません', 'ID: ' + visitorId);
+  }
+}
+
+async function confirmVisit() {
+  if (!currentVisitorId || !currentVisitorData) return;
+  document.getElementById('overlayButtons').style.display = 'none';
+  showOverlayLoading();
+
+  try {
+    await apiPost('boothVisitByToken', {
+      token: TOKEN,
+      visitorId: currentVisitorId
+    });
+    hideOverlay();
+
+    // 来場者パネルを表示
+    document.getElementById('visitorName').textContent = currentVisitorData.name;
+    document.getElementById('visitorCompany').textContent =
+      currentVisitorData.company + (currentVisitorData.department ? '　' + currentVisitorData.department : '');
+    document.getElementById('visitorPanel').style.display = 'block';
+    document.getElementById('sr-product').selectedIndex = 0;
+    document.getElementById('sr-quantity').value = '1';
+    document.getElementById('sr-notes').value = '';
+    document.getElementById('sampleAlert').classList.remove('show');
+
+    playBeep(600);
+    setTimeout(() => document.getElementById('visitorPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+    if (isScanning) { try { html5QrCode.resume(); } catch(e) {} }
+    setStatus('scanning', 'スキャン待機中');
+    scanPaused = false;
+
+  } catch(e) {
+    showOverlayError('エラーが発生しました', e.message);
+  }
+}
+
+function cancelScan() {
+  currentVisitorId = null;
+  currentVisitorData = null;
+  resetScan();
+}
+
+function resetScan() {
+  hideOverlay();
+  currentVisitorId = null;
+  currentVisitorData = null;
+  scanCooldown = false;
+  scanPaused = false;
+  if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} }
+  setStatus('scanning', 'スキャン待機中');
+}
+
+// ============================================================
+// 手動入力
+// ============================================================
+function manualProcess() {
+  const id = document.getElementById('manualId').value.trim().toUpperCase();
+  if (!id) { showToast('IDを入力してください'); return; }
+  document.getElementById('manualId').value = '';
+
+  currentVisitorId = id;
+  scanPaused = true;
+
+  if (!isScanning) {
+    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('cameraWrap').classList.add('active');
+  } else {
+    if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
+    setStatus('paused', '確認中...');
+  }
+
+  showOverlayLoading();
+  processVisitor(id);
+}
+
+// ============================================================
+// サンプル依頼
+// ============================================================
+async function submitSampleRequest() {
+  if (!currentVisitorId) return;
+  try {
+    await apiPost('sampleRequestByToken', {
+      token: TOKEN,
+      visitorId: currentVisitorId,
+      product_name: document.getElementById('sr-product').value,
+      quantity: document.getElementById('sr-quantity').value,
+      notes: document.getElementById('sr-notes').value
+    });
+    showAlert('success', '✅ サンプル依頼を送信しました！');
+    playBeep(800);
+    currentVisitorId = null;
+    currentVisitorData = null;
+    setTimeout(() => {
+      document.getElementById('visitorPanel').style.display = 'none';
+      loadSamples();
+    }, 2000);
+  } catch(e) {
+    showAlert('error', 'エラー: ' + e.message);
+  }
+}
+
+async function recordVisitOnly() {
+  showAlert('success', '✅ 訪問を記録しました');
+  currentVisitorId = null;
+  currentVisitorData = null;
+  setTimeout(() => {
+    document.getElementById('visitorPanel').style.display = 'none';
+  }, 1500);
+}
+
+// ============================================================
+// サンプル一覧
+// ============================================================
+async function loadSamples() {
+  try {
+    const result = await apiGet('getBoothSamplesByToken', { token: TOKEN });
+    const samples = result.data || [];
+    const tbody = document.getElementById('sampleTable');
+    if (samples.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
+      return;
+    }
+    tbody.innerHTML = samples.map(s => {
+      const statusClass = (s.status === '完了' || s.status === '発送済み') ? 'tag-done' : 'tag-pending';
+      const time = s.requested_at ? new Date(s.requested_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+      return `<tr>
+        <td>${time}</td>
+        <td>${s.visitor_name || ''}</td>
+        <td style="max-width:80px;overflow:hidden;text-overflow:ellipsis;">${s.visitor_company || ''}</td>
+        <td>${s.product_name || ''}</td>
+        <td>${s.quantity || ''}</td>
+        <td><span class="tag ${statusClass}">${s.status || ''}</span></td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ============================================================
+// オーバーレイ
+// ============================================================
+function showOverlayLoading() {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay loading show';
+  document.getElementById('overlayIcon').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('overlayName').textContent = '確認中...';
+  document.getElementById('overlayCompany').textContent = '';
+  document.getElementById('overlayMessage').textContent = 'しばらくお待ちください';
+  document.getElementById('overlayTime').textContent = '';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'none';
+}
+
+function showOverlayPreview(v) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay preview show';
+  document.getElementById('overlayIcon').textContent = '👤';
+  document.getElementById('overlayName').textContent = v.name;
+  document.getElementById('overlayCompany').textContent = v.company + (v.department ? '　' + v.department : '');
+  document.getElementById('overlayMessage').textContent = 'この方のQRを読み取りました';
+  document.getElementById('overlayTime').textContent = 'ID: ' + currentVisitorId;
+  document.getElementById('overlayButtons').style.display = 'flex';
+  document.getElementById('overlayNext').style.display = 'none';
+}
+
+function showOverlayError(title, sub) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay error show';
+  document.getElementById('overlayIcon').textContent = '❌';
+  document.getElementById('overlayName').textContent = title;
+  document.getElementById('overlayCompany').textContent = sub;
+  document.getElementById('overlayMessage').textContent = '';
+  document.getElementById('overlayTime').textContent = '';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'block';
+}
+
+function hideOverlay() {
+  document.getElementById('overlay').className = 'overlay';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'none';
+}
+
+// ============================================================
+// アラート・音・トースト
+// ============================================================
+function showAlert(type, message) {
+  const el = document.getElementById('sampleAlert');
+  el.className = 'alert alert-' + type + ' show';
+  el.textContent = message;
+  if (type === 'success') setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function playBeep(freq) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    gain.gain.value = 0.3;
+    osc.frequency.value = freq;
+    osc.start(); osc.stop(ctx.currentTime + 0.12);
+  } catch(e) {}
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// 起動
+// ============================================================
+window.onload = function() {
+  init();
+  setInterval(loadSamples, 60000);
+};
+</script>
+</body>
+</html>
