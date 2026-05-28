@@ -474,10 +474,11 @@ function startCamera() {
 
   // カメラ設定：背面カメラ・QRに適した設定
   const config = {
-    fps: 10,
-    qrbox: { width: 250, height: 250 },
+    fps: 20,
+    qrbox: { width: 300, height: 300 },
     aspectRatio: 1.0,
-    disableFlip: false
+    disableFlip: false,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
   };
 
   html5QrCode.start(
