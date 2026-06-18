@@ -868,33 +868,29 @@ function onOcrImageSelected(event) {
 }
 
 function runOcr(base64, mimeType) {
-  // ステータスバー表示
-  const statusBar = document.getElementById('ocrStatusBar');
+  var statusBar = document.getElementById('ocrStatusBar');
   statusBar.classList.add('show');
   document.getElementById('ocrStatusText').textContent = 'Gemini AIが読み取り中です…少々お待ちください';
-
-  // フォームを隠す
   document.getElementById('ocrForm').classList.remove('show');
 
-  fetch(GAS_URL, {
+  var payload = JSON.stringify({
+    action: 'ocrCard',
+    imageBase64: base64,
+    mimeType: mimeType
+  });
+
+  fetch(GAS_URL + '?action=ocrCard', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'ocrCard',
-      imageBase64: base64,
-      mimeType: mimeType
-    })
+    headers: { 'Content-Type': 'text/plain' },
+    body: payload
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
     statusBar.classList.remove('show');
-
     if (!data.success) {
       showToast('読み取りに失敗しました：' + (data.error || '不明なエラー'));
       return;
     }
-
-    // フォームに結果を反映
     fillOcrForm(data.data);
   })
   .catch(function() {
