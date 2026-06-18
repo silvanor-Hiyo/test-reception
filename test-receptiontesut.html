@@ -822,28 +822,49 @@ function triggerOcrCamera() {
 }
 
 function onOcrImageSelected(event) {
-  const file = event.target.files[0];
+  var file = event.target.files[0];
   if (!file) return;
+  event.target.value = '';
 
-  // プレビュー表示
-  const reader = new FileReader();
+  var reader = new FileReader();
   reader.onload = function(e) {
-    const img = document.getElementById('ocrPreviewImg');
-    img.src = e.target.result;
-    img.classList.add('show');
+    var originalSrc = e.target.result;
+
+    // プレビュー表示
+    var previewImg = document.getElementById('ocrPreviewImg');
+    previewImg.src = originalSrc;
+    previewImg.classList.add('show');
     document.getElementById('ocrShootLabel').textContent = '撮り直す';
 
-    // base64データ（data:image/jpeg;base64,XXXX → XXXXの部分）
-    const base64 = e.target.result.split(',')[1];
-    const mimeType = file.type || 'image/jpeg';
+    // Canvas で画像を圧縮してからGASに送る
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
 
-    // GAS経由でGemini OCR呼び出し
-    runOcr(base64, mimeType);
+      // 長辺を1200px以内に縮小
+      var maxSize = 1200;
+      var w = img.width;
+      var h = img.height;
+      if (w > h) {
+        if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; }
+      } else {
+        if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      canvas.width  = w;
+      canvas.height = h;
+
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // JPEG品質0.7で圧縮
+      var compressed = canvas.toDataURL('image/jpeg', 0.7);
+      var base64 = compressed.split(',')[1];
+
+      runOcr(base64, 'image/jpeg');
+    };
+    img.src = originalSrc;
   };
   reader.readAsDataURL(file);
-
-  // inputをリセット（同じファイルを再選択できるよう）
-  event.target.value = '';
 }
 
 function runOcr(base64, mimeType) {
