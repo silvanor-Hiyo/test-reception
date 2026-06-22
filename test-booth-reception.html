@@ -405,7 +405,7 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>状態</th></tr>
+          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>依頼商品</th><th>状態</th></tr>
         </thead>
         <tbody id="sampleTable">
           <tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
@@ -467,24 +467,19 @@ function buildProductCheckList(productsStr) {
     return;
   }
 
-  list.innerHTML = products.map((p, i) => `
-    <label class="product-check-item" id="item-${i}" onclick="toggleItem(${i})">
-      <input type="checkbox" id="chk-${i}" value="${escapeAttr(p)}" onclick="event.stopPropagation();toggleItem(${i})">
-      <span class="product-check-label">${escapeHtml(p)}</span>
-    </label>
-  `).join('') + `
-    <label class="product-check-item" id="item-other" onclick="toggleItem('other')">
-      <input type="checkbox" id="chk-other" value="その他" onclick="event.stopPropagation();toggleItem('other')">
-      <span class="product-check-label">その他</span>
-    </label>
-  `;
+  list.innerHTML = [...products, 'その他'].map((p, i) => {
+    const id = 'chk-' + i;
+    return `<div class="product-check-item" id="item-${i}">
+      <input type="checkbox" id="${id}" value="${escapeAttr(p)}" onchange="onCheckChange(${i})">
+      <label for="${id}" class="product-check-label">${escapeHtml(p)}</label>
+    </div>`;
+  }).join('');
   updateCheckCount();
 }
 
-function toggleItem(idx) {
+function onCheckChange(idx) {
   const chk = document.getElementById('chk-' + idx);
   const item = document.getElementById('item-' + idx);
-  chk.checked = !chk.checked;
   item.classList.toggle('checked', chk.checked);
   updateCheckCount();
 }
@@ -501,8 +496,7 @@ function updateCheckCount() {
 function selectAll() {
   document.querySelectorAll('#productCheckList input[type="checkbox"]').forEach(chk => {
     chk.checked = true;
-    const item = chk.closest('.product-check-item');
-    if (item) item.classList.add('checked');
+    chk.closest('.product-check-item').classList.add('checked');
   });
   updateCheckCount();
 }
@@ -510,8 +504,7 @@ function selectAll() {
 function clearAll() {
   document.querySelectorAll('#productCheckList input[type="checkbox"]').forEach(chk => {
     chk.checked = false;
-    const item = chk.closest('.product-check-item');
-    if (item) item.classList.remove('checked');
+    chk.closest('.product-check-item').classList.remove('checked');
   });
   updateCheckCount();
 }
@@ -740,15 +733,36 @@ async function loadSamples() {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
       return;
     }
-    tbody.innerHTML = samples.map(s => {
-      const statusClass = (s.status === '完了' || s.status === '発送済み') ? 'tag-done' : 'tag-pending';
-      const time = s.requested_at ? new Date(s.requested_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+
+    // 来場者ごとにまとめる（来場者名+会社名をキーに）
+    const grouped = {};
+    const order = [];
+    samples.forEach(s => {
+      const key = (s.visitor_name || '') + '|' + (s.visitor_company || '');
+      if (!grouped[key]) {
+        grouped[key] = {
+          time: s.requested_at,
+          visitor_name: s.visitor_name || '',
+          visitor_company: s.visitor_company || '',
+          products: [],
+          status: s.status || ''
+        };
+        order.push(key);
+      }
+      grouped[key].products.push(s.product_name || '');
+    });
+
+    tbody.innerHTML = order.map(key => {
+      const g = grouped[key];
+      const statusClass = (g.status === '完了' || g.status === '発送済み') ? 'tag-done' : 'tag-pending';
+      const time = g.time ? new Date(g.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+      const productText = g.products.join('、');
       return `<tr>
-        <td>${time}</td>
-        <td>${s.visitor_name || ''}</td>
-        <td style="max-width:80px;overflow:hidden;text-overflow:ellipsis;">${s.visitor_company || ''}</td>
-        <td>${s.product_name || ''}</td>
-        <td><span class="tag ${statusClass}">${s.status || ''}</span></td>
+        <td style="white-space:nowrap;">${time}</td>
+        <td style="white-space:nowrap;">${g.visitor_name}</td>
+        <td style="max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.visitor_company}</td>
+        <td style="white-space:normal;font-size:12px;line-height:1.6;">${productText}</td>
+        <td><span class="tag ${statusClass}">${g.status}</span></td>
       </tr>`;
     }).join('');
   } catch(e) { console.error(e); }
