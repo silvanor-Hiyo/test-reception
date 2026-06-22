@@ -35,7 +35,6 @@ body {
   padding-bottom: 40px;
 }
 
-/* ヘッダー */
 .header {
   background: linear-gradient(160deg, #1a3a9e 0%, #0d1f5c 100%);
   border-bottom: 3px solid var(--gold);
@@ -50,7 +49,6 @@ body {
 
 main { max-width: 560px; margin: 0 auto; padding: 16px; }
 
-/* カード */
 .card {
   background: var(--white); border-radius: var(--radius);
   padding: 20px; margin-bottom: 16px;
@@ -65,7 +63,6 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 }
 .card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 
-/* カメラエリア */
 .camera-wrap {
   position: relative; border-radius: var(--radius);
   overflow: hidden; margin-bottom: 16px;
@@ -94,7 +91,6 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 }
 .camera-stop-btn { background: var(--navy); padding: 10px 16px; }
 
-/* オーバーレイ */
 .overlay {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: none; flex-direction: column;
@@ -118,7 +114,6 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .overlay-buttons { display: flex; gap: 10px; margin-top: 16px; width: 100%; }
 .overlay-buttons .btn { flex: 1; }
 
-/* カメラ起動ボタン */
 .btn-camera-start {
   width: 100%; padding: 20px;
   background: linear-gradient(135deg, var(--navy), var(--navy-mid));
@@ -130,7 +125,6 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 }
 .btn-camera-start .icon { font-size: 30px; }
 
-/* ボタン */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
   gap: 8px; padding: 12px 20px; border: none; border-radius: 10px;
@@ -145,7 +139,6 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .btn-block { width: 100%; }
 .btn-row { display: flex; gap: 8px; }
 
-/* 手動入力 */
 .manual-row { display: flex; gap: 8px; }
 .input-field {
   flex: 1; padding: 12px 14px; border: 1.5px solid var(--border);
@@ -156,7 +149,6 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .input-field:focus { border-color: var(--navy-mid); }
 .input-field::placeholder { color: #bbb8d0; font-size: 13px; }
 
-/* 来場者パネル */
 .visitor-found {
   background: var(--success-bg); border: 2px solid #22c55e;
   border-radius: 12px; padding: 16px; margin-bottom: 12px;
@@ -164,23 +156,105 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .v-name { font-size: 22px; font-weight: 700; color: var(--navy); }
 .v-company { font-size: 13px; color: var(--text-light); margin-top: 4px; }
 
-/* フォーム */
 .form-group { margin-bottom: 14px; }
 .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
-.form-group select, .form-group input, .form-group textarea {
+.form-group input, .form-group textarea {
   width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
   border-radius: 8px; font-size: 15px; font-family: inherit;
   outline: none; transition: border-color 0.2s; -webkit-appearance: none;
 }
-.form-group select:focus, .form-group input:focus { border-color: var(--gold); }
+.form-group input:focus, .form-group textarea:focus { border-color: var(--gold); }
 
-/* アラート */
+/* ===== チェックボックスリスト ===== */
+.product-check-list {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.product-check-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.product-check-item:last-child { border-bottom: none; }
+.product-check-item:active { background: var(--gold-pale); }
+.product-check-item input[type="checkbox"] {
+  width: 20px; height: 20px;
+  accent-color: var(--navy-mid);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+.product-check-item.checked {
+  background: #eef2ff;
+}
+.product-check-label {
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.4;
+  flex: 1;
+}
+.product-check-item.checked .product-check-label {
+  color: var(--navy-mid);
+  font-weight: 700;
+}
+.check-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px; height: 22px;
+  background: var(--navy-mid);
+  color: white;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 6px;
+  margin-left: 4px;
+}
+.check-count-badge.zero {
+  background: var(--border);
+  color: var(--text-light);
+}
+.product-check-none {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 13px;
+}
+.select-all-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 2px 8px;
+}
+.select-all-row button {
+  font-size: 12px;
+  color: var(--navy-mid);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+}
+.select-all-row .count-label {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
 .alert { padding: 12px 16px; border-radius: 8px; margin-top: 12px; font-size: 14px; display: none; }
 .alert.show { display: block; }
 .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #a8ddb8; }
 .alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
 
-/* サンプルテーブル */
 .table-wrap { overflow-x: auto; margin: 8px -4px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -189,13 +263,11 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
 .tag-pending { background: var(--warning-bg); color: var(--warning); }
 .tag-done { background: var(--success-bg); color: var(--success); }
 
-/* エラー画面 */
 .error-screen { text-align: center; padding: 60px 20px; }
 .error-screen .icon { font-size: 60px; margin-bottom: 16px; }
 .error-screen h2 { color: #c62828; margin-bottom: 8px; font-size: 20px; }
 .error-screen p { font-size: 14px; color: var(--text-light); line-height: 1.7; }
 
-/* スピナー */
 .spinner {
   display: inline-block; width: 36px; height: 36px;
   border: 4px solid rgba(255,255,255,0.2);
@@ -204,7 +276,6 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* トースト */
 .toast {
   position: fixed; bottom: 24px; left: 50%;
   transform: translateX(-50%) translateY(80px);
@@ -222,29 +293,25 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
 <body>
 
 <div class="header">
-  <div class="header-event"EIWA BUSSAN FOOD FAIR 2026</div>
+  <div class="header-event">EIWA BUSSAN FOOD FAIR 2026</div>
   <h1>ブース受付システム</h1>
   <div class="header-booth" id="headerBoothName">読み込み中...</div>
 </div>
 
-<!-- エラー画面 -->
 <div id="errorScreen" class="error-screen" style="display:none;">
   <div class="icon">🔒</div>
   <h2>アクセスできません</h2>
   <p>URLが正しくないか、有効期限が切れています。<br>永和物産の担当者にお問い合わせください。</p>
 </div>
 
-<!-- メインコンテンツ -->
 <div id="mainContent" style="display:none;">
 <main>
 
-  <!-- カメラ起動ボタン -->
   <button class="btn-camera-start" id="startBtn" onclick="startCamera()">
     <span class="icon">📷</span>
     <span>カメラを起動してQRをスキャン</span>
   </button>
 
-  <!-- カメラ＋オーバーレイ -->
   <div class="camera-wrap" id="cameraWrap">
     <div class="camera-header">
       <div class="camera-title"><span>📷</span> QRコードをスキャン中</div>
@@ -253,7 +320,6 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
     <div id="qr-reader"></div>
     <div class="camera-guide">来場者の入場証QRコードをカメラに向けてください</div>
 
-    <!-- オーバーレイ -->
     <div class="overlay" id="overlay">
       <div class="overlay-icon" id="overlayIcon"></div>
       <div class="overlay-name" id="overlayName"></div>
@@ -276,7 +342,6 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
     </div>
   </div>
 
-  <!-- 手動入力 -->
   <div class="card">
     <div class="card-title"><span>⌨️</span>手動入力（QRが読めない場合）</div>
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">
@@ -298,19 +363,31 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
       <div class="v-company" id="visitorCompany"></div>
     </div>
     <div class="card">
-      <div class="card-title"><span>📦</span>サンプル依頼</div>
-      <div class="form-group">
-        <label>商品名</label>
-        <select id="sr-product"><option value="">商品を選択...</option></select>
+      <div class="card-title">
+        <span>📦</span>サンプル依頼
+        <span class="check-count-badge zero" id="checkCountBadge">0</span>
       </div>
+
+      <!-- ★ チェックボックスリスト ★ -->
       <div class="form-group">
-        <label>数量</label>
-        <input type="number" id="sr-quantity" value="1" min="1" max="99">
+        <label>商品を選んでください（複数選択可）</label>
+        <div class="select-all-row">
+          <span class="count-label" id="checkCountLabel">0件選択中</span>
+          <div style="display:flex;gap:6px;">
+            <button onclick="selectAll()">すべて選択</button>
+            <button onclick="clearAll()">クリア</button>
+          </div>
+        </div>
+        <div class="product-check-list" id="productCheckList">
+          <div class="product-check-none">商品を読み込み中...</div>
+        </div>
       </div>
+
       <div class="form-group">
         <label>備考（配送先・用途など）</label>
         <textarea id="sr-notes" rows="2" placeholder="例：〇〇支店へ発送 / 社内試食用" style="resize:none;"></textarea>
       </div>
+
       <div class="btn-row">
         <button class="btn btn-success btn-block" onclick="submitSampleRequest()">📦 サンプル依頼を送信</button>
         <button class="btn btn-outline-dark" onclick="recordVisitOnly()" style="white-space:nowrap;">訪問のみ</button>
@@ -328,10 +405,10 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>数量</th><th>状態</th></tr>
+          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>状態</th></tr>
         </thead>
         <tbody id="sampleTable">
-          <tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
         </tbody>
       </table>
     </div>
@@ -343,9 +420,6 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
 <div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-// 設定
-// ============================================================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8IQaf54k3qVoCGfGcueOZWcMUKiFSWQH1bj3Ic-CB4ZLdIg/exec';
 const urlParams = new URLSearchParams(window.location.search);
 const TOKEN = urlParams.get('token') || '';
@@ -362,10 +436,7 @@ let scanCooldown = false;
 // 初期化
 // ============================================================
 async function init() {
-  if (!TOKEN) {
-    showError();
-    return;
-  }
+  if (!TOKEN) { showError(); return; }
   try {
     const result = await apiGet('getBoothByToken', { token: TOKEN });
     boothInfo = result.booth;
@@ -373,11 +444,9 @@ async function init() {
       (boothInfo.booth_number ? boothInfo.booth_number + '番　' : '') + boothInfo.company;
     document.getElementById('errorScreen').style.display = 'none';
     document.getElementById('mainContent').style.display = 'block';
-    setProductOptions(boothInfo.products);
+    buildProductCheckList(boothInfo.products);
     await loadSamples();
-  } catch(e) {
-    showError();
-  }
+  } catch(e) { showError(); }
 }
 
 function showError() {
@@ -386,12 +455,70 @@ function showError() {
   document.getElementById('headerBoothName').textContent = 'アクセスエラー';
 }
 
-function setProductOptions(productsStr) {
-  const sel = document.getElementById('sr-product');
+// ============================================================
+// ★ チェックボックスリスト構築
+// ============================================================
+function buildProductCheckList(productsStr) {
   const products = String(productsStr || '').split(',').map(p => p.trim()).filter(Boolean);
-  sel.innerHTML = '<option value="">商品を選択...</option>' +
-    products.map(p => `<option value="${p}">${p}</option>`).join('') +
-    '<option value="その他">その他</option>';
+  const list = document.getElementById('productCheckList');
+
+  if (products.length === 0) {
+    list.innerHTML = '<div class="product-check-none">商品が登録されていません</div>';
+    return;
+  }
+
+  list.innerHTML = products.map((p, i) => `
+    <label class="product-check-item" id="item-${i}" onclick="toggleItem(${i})">
+      <input type="checkbox" id="chk-${i}" value="${escapeAttr(p)}" onclick="event.stopPropagation();toggleItem(${i})">
+      <span class="product-check-label">${escapeHtml(p)}</span>
+    </label>
+  `).join('') + `
+    <label class="product-check-item" id="item-other" onclick="toggleItem('other')">
+      <input type="checkbox" id="chk-other" value="その他" onclick="event.stopPropagation();toggleItem('other')">
+      <span class="product-check-label">その他</span>
+    </label>
+  `;
+  updateCheckCount();
+}
+
+function toggleItem(idx) {
+  const chk = document.getElementById('chk-' + idx);
+  const item = document.getElementById('item-' + idx);
+  chk.checked = !chk.checked;
+  item.classList.toggle('checked', chk.checked);
+  updateCheckCount();
+}
+
+function updateCheckCount() {
+  const checked = document.querySelectorAll('#productCheckList input[type="checkbox"]:checked');
+  const n = checked.length;
+  document.getElementById('checkCountLabel').textContent = n + '件選択中';
+  const badge = document.getElementById('checkCountBadge');
+  badge.textContent = n;
+  badge.className = 'check-count-badge' + (n === 0 ? ' zero' : '');
+}
+
+function selectAll() {
+  document.querySelectorAll('#productCheckList input[type="checkbox"]').forEach(chk => {
+    chk.checked = true;
+    const item = chk.closest('.product-check-item');
+    if (item) item.classList.add('checked');
+  });
+  updateCheckCount();
+}
+
+function clearAll() {
+  document.querySelectorAll('#productCheckList input[type="checkbox"]').forEach(chk => {
+    chk.checked = false;
+    const item = chk.closest('.product-check-item');
+    if (item) item.classList.remove('checked');
+  });
+  updateCheckCount();
+}
+
+function getCheckedProducts() {
+  return Array.from(document.querySelectorAll('#productCheckList input[type="checkbox"]:checked'))
+    .map(chk => chk.value);
 }
 
 // ============================================================
@@ -424,16 +551,13 @@ async function apiPost(action, body = {}) {
 function startCamera() {
   document.getElementById('startBtn').style.display = 'none';
   document.getElementById('cameraWrap').classList.add('active');
-
   html5QrCode = new Html5Qrcode('qr-reader');
   html5QrCode.start(
     { facingMode: 'environment' },
     { fps: 15, qrbox: { width: 260, height: 260 }, aspectRatio: 1.0 },
-    onQrSuccess,
-    () => {}
+    onQrSuccess, () => {}
   ).then(() => {
-    isScanning = true;
-    scanPaused = false;
+    isScanning = true; scanPaused = false;
     setStatus('scanning', 'スキャン待機中');
   }).catch(() => {
     showToast('カメラの起動に失敗しました');
@@ -445,10 +569,7 @@ function startCamera() {
 function stopCamera() {
   hideOverlay();
   if (html5QrCode && isScanning) {
-    html5QrCode.stop().then(() => {
-      isScanning = false;
-      html5QrCode = null;
-    });
+    html5QrCode.stop().then(() => { isScanning = false; html5QrCode = null; });
   }
   document.getElementById('cameraWrap').classList.remove('active');
   document.getElementById('startBtn').style.display = 'flex';
@@ -456,12 +577,11 @@ function stopCamera() {
 
 function setStatus(type, text) {
   const el = document.getElementById('cameraStatus');
-  el.textContent = text;
-  el.className = 'camera-status ' + type;
+  el.textContent = text; el.className = 'camera-status ' + type;
 }
 
 // ============================================================
-// QRスキャン成功
+// QRスキャン
 // ============================================================
 function onQrSuccess(decodedText) {
   if (scanCooldown || scanPaused) return;
@@ -469,7 +589,6 @@ function onQrSuccess(decodedText) {
   setTimeout(() => { scanCooldown = false; }, 3000);
 
   let visitorId = decodedText.trim().toUpperCase();
-  // URLの場合はIDだけ取り出す
   try {
     const url = new URL(decodedText);
     const id = url.searchParams.get('id');
@@ -477,11 +596,9 @@ function onQrSuccess(decodedText) {
   } catch(e) {}
 
   if (!visitorId) { showToast('QRコードを認識できませんでした'); return; }
-
   scanPaused = true;
   if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
   setStatus('paused', '確認中...');
-
   showOverlayLoading();
   processVisitor(visitorId);
 }
@@ -492,7 +609,7 @@ function onQrSuccess(decodedText) {
 async function processVisitor(visitorId) {
   currentVisitorId = visitorId;
   try {
-    const result = await apiGet('getVisitorInfo', { visitorId: visitorId });
+    const result = await apiGet('getVisitorInfo', { visitorId });
     currentVisitorData = result.visitor;
     showOverlayPreview(result.visitor);
   } catch(e) {
@@ -506,19 +623,16 @@ async function confirmVisit() {
   showOverlayLoading();
 
   try {
-    await apiPost('boothVisitByToken', {
-      token: TOKEN,
-      visitorId: currentVisitorId
-    });
+    await apiPost('boothVisitByToken', { token: TOKEN, visitorId: currentVisitorId });
     hideOverlay();
 
-    // 来場者パネルを表示
     document.getElementById('visitorName').textContent = currentVisitorData.name;
     document.getElementById('visitorCompany').textContent =
       currentVisitorData.company + (currentVisitorData.department ? '　' + currentVisitorData.department : '');
     document.getElementById('visitorPanel').style.display = 'block';
-    document.getElementById('sr-product').selectedIndex = 0;
-    document.getElementById('sr-quantity').value = '1';
+
+    // チェックボックスをリセット
+    clearAll();
     document.getElementById('sr-notes').value = '';
     document.getElementById('sampleAlert').classList.remove('show');
 
@@ -528,24 +642,19 @@ async function confirmVisit() {
     if (isScanning) { try { html5QrCode.resume(); } catch(e) {} }
     setStatus('scanning', 'スキャン待機中');
     scanPaused = false;
-
   } catch(e) {
     showOverlayError('エラーが発生しました', e.message);
   }
 }
 
 function cancelScan() {
-  currentVisitorId = null;
-  currentVisitorData = null;
-  resetScan();
+  currentVisitorId = null; currentVisitorData = null; resetScan();
 }
 
 function resetScan() {
   hideOverlay();
-  currentVisitorId = null;
-  currentVisitorData = null;
-  scanCooldown = false;
-  scanPaused = false;
+  currentVisitorId = null; currentVisitorData = null;
+  scanCooldown = false; scanPaused = false;
   if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} }
   setStatus('scanning', 'スキャン待機中');
 }
@@ -557,10 +666,7 @@ function manualProcess() {
   const id = document.getElementById('manualId').value.trim().toUpperCase();
   if (!id) { showToast('IDを入力してください'); return; }
   document.getElementById('manualId').value = '';
-
-  currentVisitorId = id;
-  scanPaused = true;
-
+  currentVisitorId = id; scanPaused = true;
   if (!isScanning) {
     document.getElementById('startBtn').style.display = 'none';
     document.getElementById('cameraWrap').classList.add('active');
@@ -568,44 +674,58 @@ function manualProcess() {
     if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
     setStatus('paused', '確認中...');
   }
-
   showOverlayLoading();
   processVisitor(id);
 }
 
 // ============================================================
-// サンプル依頼
+// ★ サンプル依頼送信（複数商品を順次送信）
 // ============================================================
 async function submitSampleRequest() {
   if (!currentVisitorId) return;
+
+  const products = getCheckedProducts();
+  if (products.length === 0) {
+    showAlert('error', '商品を1つ以上選択してください');
+    return;
+  }
+
+  const notes = document.getElementById('sr-notes').value;
+  const btn = document.querySelector('.btn-success');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
   try {
-    await apiPost('sampleRequestByToken', {
-      token: TOKEN,
-      visitorId: currentVisitorId,
-      product_name: document.getElementById('sr-product').value,
-      quantity: document.getElementById('sr-quantity').value,
-      notes: document.getElementById('sr-notes').value
-    });
-    showAlert('success', '✅ サンプル依頼を送信しました！');
+    // 選択された商品を1件ずつ送信
+    for (const product of products) {
+      await apiPost('sampleRequestByToken', {
+        token: TOKEN,
+        visitorId: currentVisitorId,
+        product_name: product,
+        quantity: 1,
+        notes: notes
+      });
+    }
+
+    showAlert('success', `✅ ${products.length}件のサンプル依頼を送信しました！`);
     playBeep(800);
-    currentVisitorId = null;
-    currentVisitorData = null;
+    currentVisitorId = null; currentVisitorData = null;
     setTimeout(() => {
       document.getElementById('visitorPanel').style.display = 'none';
       loadSamples();
     }, 2000);
   } catch(e) {
     showAlert('error', 'エラー: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📦 サンプル依頼を送信';
   }
 }
 
 async function recordVisitOnly() {
   showAlert('success', '✅ 訪問を記録しました');
-  currentVisitorId = null;
-  currentVisitorData = null;
-  setTimeout(() => {
-    document.getElementById('visitorPanel').style.display = 'none';
-  }, 1500);
+  currentVisitorId = null; currentVisitorData = null;
+  setTimeout(() => { document.getElementById('visitorPanel').style.display = 'none'; }, 1500);
 }
 
 // ============================================================
@@ -617,7 +737,7 @@ async function loadSamples() {
     const samples = result.data || [];
     const tbody = document.getElementById('sampleTable');
     if (samples.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
       return;
     }
     tbody.innerHTML = samples.map(s => {
@@ -628,7 +748,6 @@ async function loadSamples() {
         <td>${s.visitor_name || ''}</td>
         <td style="max-width:80px;overflow:hidden;text-overflow:ellipsis;">${s.visitor_company || ''}</td>
         <td>${s.product_name || ''}</td>
-        <td>${s.quantity || ''}</td>
         <td><span class="tag ${statusClass}">${s.status || ''}</span></td>
       </tr>`;
     }).join('');
@@ -681,7 +800,7 @@ function hideOverlay() {
 }
 
 // ============================================================
-// アラート・音・トースト
+// ユーティリティ
 // ============================================================
 function showAlert(type, message) {
   const el = document.getElementById('sampleAlert');
@@ -704,18 +823,19 @@ function playBeep(freq) {
 
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// ============================================================
-// 起動
-// ============================================================
-window.onload = function() {
-  init();
-  setInterval(loadSamples, 60000);
-};
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escapeAttr(str) {
+  return String(str).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+window.onload = function() { init(); setInterval(loadSamples, 60000); };
 </script>
 </body>
 </html>
