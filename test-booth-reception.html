@@ -204,10 +204,14 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 }
 .product-item:hover { background: var(--gold-pale); border-color: var(--gold); }
 .product-item.selected { background: #eef2ff; border-color: var(--navy-mid); }
-.product-item input[type="checkbox"] {
-  width: 20px; height: 20px; min-width: 20px;
-  accent-color: var(--navy-mid); cursor: pointer;
-  border-radius: 4px;
+.product-check {
+  width: 22px; height: 22px; min-width: 22px;
+  border: 2px solid var(--border); border-radius: 5px;
+  background: white; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: all 0.15s;
+}
+.product-item.selected .product-check {
+  background: var(--navy-mid); border-color: var(--navy-mid); color: white;
 }
 .product-item-name { font-size: 15px; font-weight: 500; color: var(--text); flex: 1; }
 
@@ -423,61 +427,76 @@ function showError() {
   document.getElementById('headerBoothName').textContent = 'アクセスエラー';
 }
 
+// 選択状態をJS配列で管理（チェックボックス廃止）
+var selectedProductSet = {};
+
 function setProductOptions(productsStr) {
   var list = document.getElementById('sr-product-list');
   var products = String(productsStr || '').split(',').map(function(p) { return p.trim(); }).filter(Boolean);
   products.push('その他');
+  selectedProductSet = {};
   list.innerHTML = products.map(function(p, i) {
-    return '<label class="product-item" id="pi-' + i + '" for="pc-' + i + '">' +
-      '<input type="checkbox" id="pc-' + i + '" value="' + p + '" onchange="onProductChange(' + i + ')">' +
+    return '<div class="product-item" id="pi-' + i + '" onclick="toggleProduct(' + i + ','' + p.replace(/'/g, "\'") + '')">' +
+      '<div class="product-check" id="pc-' + i + '"></div>' +
       '<span class="product-item-name">' + p + '</span>' +
-      '</label>';
+      '</div>';
   }).join('');
   updateProductCount();
 }
 
-function onProductChange(idx) {
-  var cb = document.getElementById('pc-' + idx);
-  var label = document.getElementById('pi-' + idx);
-  if (cb.checked) {
-    label.classList.add('selected');
+function toggleProduct(idx, value) {
+  var item = document.getElementById('pi-' + idx);
+  var check = document.getElementById('pc-' + idx);
+  if (selectedProductSet[idx]) {
+    delete selectedProductSet[idx];
+    item.classList.remove('selected');
+    check.textContent = '';
   } else {
-    label.classList.remove('selected');
+    selectedProductSet[idx] = value;
+    item.classList.add('selected');
+    check.textContent = '✓';
   }
   updateProductCount();
-  // 「その他」チェック時に自由入力欄を表示
   var otherChecked = false;
-  var checkboxes = document.querySelectorAll('#sr-product-list input[type="checkbox"]');
-  checkboxes.forEach(function(c) { if (c.checked && c.value === 'その他') otherChecked = true; });
+  for (var k in selectedProductSet) {
+    if (selectedProductSet[k] === 'その他') { otherChecked = true; break; }
+  }
   document.getElementById('other-input-wrap').style.display = otherChecked ? 'block' : 'none';
   if (!otherChecked) document.getElementById('sr-other-text').value = '';
 }
 
 function updateProductCount() {
-  var checkboxes = document.querySelectorAll('#sr-product-list input[type="checkbox"]');
-  var count = 0;
-  checkboxes.forEach(function(cb) { if (cb.checked) count++; });
+  var count = Object.keys(selectedProductSet).length;
   document.getElementById('sr-count').textContent = count + '件選択中';
 }
 
 function selectAllProducts() {
-  var checkboxes = document.querySelectorAll('#sr-product-list input[type="checkbox"]');
-  checkboxes.forEach(function(cb, i) {
-    cb.checked = true;
-    var label = document.getElementById('pi-' + i);
-    if (label) label.classList.add('selected');
+  var items = document.querySelectorAll('#sr-product-list .product-item');
+  items.forEach(function(item, i) {
+    var name = item.querySelector('.product-item-name').textContent;
+    selectedProductSet[i] = name;
+    item.classList.add('selected');
+    var check = document.getElementById('pc-' + i);
+    if (check) check.textContent = '✓';
   });
   updateProductCount();
+  var otherChecked = false;
+  for (var k in selectedProductSet) {
+    if (selectedProductSet[k] === 'その他') { otherChecked = true; break; }
+  }
+  document.getElementById('other-input-wrap').style.display = otherChecked ? 'block' : 'none';
 }
 
 function clearProducts() {
-  var checkboxes = document.querySelectorAll('#sr-product-list input[type="checkbox"]');
-  checkboxes.forEach(function(cb, i) {
-    cb.checked = false;
-    var label = document.getElementById('pi-' + i);
-    if (label) label.classList.remove('selected');
+  selectedProductSet = {};
+  document.querySelectorAll('#sr-product-list .product-item').forEach(function(item, i) {
+    item.classList.remove('selected');
+    var check = document.getElementById('pc-' + i);
+    if (check) check.textContent = '';
   });
   updateProductCount();
+  document.getElementById('other-input-wrap').style.display = 'none';
+  document.getElementById('sr-other-text').value = '';
 }
 
 // ============================================================
@@ -666,16 +685,16 @@ function manualProcess() {
 async function submitSampleRequest() {
   if (!currentVisitorId) return;
 
-  var checkboxes = document.querySelectorAll('#sr-product-list input[type="checkbox"]:checked');
   var selectedProducts = [];
   var otherText = document.getElementById('sr-other-text').value.trim();
-  checkboxes.forEach(function(cb) {
-    if (cb.value === 'その他') {
+  for (var k in selectedProductSet) {
+    var val = selectedProductSet[k];
+    if (val === 'その他') {
       selectedProducts.push(otherText ? 'その他：' + otherText : 'その他');
     } else {
-      selectedProducts.push(cb.value);
+      selectedProducts.push(val);
     }
-  });
+  }
 
   if (selectedProducts.length === 0) {
     showAlert('error', '商品を1つ以上選択してください');
