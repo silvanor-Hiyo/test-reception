@@ -430,13 +430,16 @@ function showError() {
 // 選択状態をJS配列で管理（チェックボックス廃止）
 var selectedProductSet = {};
 
+// 商品リストをグローバルに保持
+var productList = [];
+
 function setProductOptions(productsStr) {
   var list = document.getElementById('sr-product-list');
-  var products = String(productsStr || '').split(',').map(function(p) { return p.trim(); }).filter(Boolean);
-  products.push('その他');
+  productList = String(productsStr || '').split(',').map(function(p) { return p.trim(); }).filter(Boolean);
+  productList.push('その他');
   selectedProductSet = {};
-  list.innerHTML = products.map(function(p, i) {
-    return '<div class="product-item" id="pi-' + i + '" onclick="toggleProduct(' + i + ','' + p.replace(/'/g, "\'") + '')">' +
+  list.innerHTML = productList.map(function(p, i) {
+    return '<div class="product-item" id="pi-' + i + '" onclick="toggleProduct(' + i + ')">' +
       '<div class="product-check" id="pc-' + i + '"></div>' +
       '<span class="product-item-name">' + p + '</span>' +
       '</div>';
@@ -444,7 +447,8 @@ function setProductOptions(productsStr) {
   updateProductCount();
 }
 
-function toggleProduct(idx, value) {
+function toggleProduct(idx) {
+  var value = productList[idx];
   var item = document.getElementById('pi-' + idx);
   var check = document.getElementById('pc-' + idx);
   if (selectedProductSet[idx]) {
