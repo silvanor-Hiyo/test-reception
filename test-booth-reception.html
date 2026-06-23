@@ -340,6 +340,9 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
           </div>
         </div>
         <div class="product-list" id="sr-product-list"></div>
+        <div id="other-input-wrap" style="display:none;margin-top:8px;">
+          <input type="text" class="input-field" id="sr-other-text" placeholder="その他の商品名を入力してください" style="width:100%;">
+        </div>
       </div>
       <div class="form-group">
         <label>備考（配送先・用途など）</label>
@@ -425,24 +428,29 @@ function setProductOptions(productsStr) {
   var products = String(productsStr || '').split(',').map(function(p) { return p.trim(); }).filter(Boolean);
   products.push('その他');
   list.innerHTML = products.map(function(p, i) {
-    return '<label class="product-item" id="pi-' + i + '" onclick="toggleProduct(' + i + ')">' +
-      '<input type="checkbox" id="pc-' + i + '" value="' + p + '" onclick="event.stopPropagation();toggleProduct(' + i + ')">' +
+    return '<label class="product-item" id="pi-' + i + '" for="pc-' + i + '">' +
+      '<input type="checkbox" id="pc-' + i + '" value="' + p + '" onchange="onProductChange(' + i + ')">' +
       '<span class="product-item-name">' + p + '</span>' +
       '</label>';
   }).join('');
   updateProductCount();
 }
 
-function toggleProduct(idx) {
+function onProductChange(idx) {
   var cb = document.getElementById('pc-' + idx);
   var label = document.getElementById('pi-' + idx);
-  cb.checked = !cb.checked;
   if (cb.checked) {
     label.classList.add('selected');
   } else {
     label.classList.remove('selected');
   }
   updateProductCount();
+  // 「その他」チェック時に自由入力欄を表示
+  var otherChecked = false;
+  var checkboxes = document.querySelectorAll('#sr-product-list input[type="checkbox"]');
+  checkboxes.forEach(function(c) { if (c.checked && c.value === 'その他') otherChecked = true; });
+  document.getElementById('other-input-wrap').style.display = otherChecked ? 'block' : 'none';
+  if (!otherChecked) document.getElementById('sr-other-text').value = '';
 }
 
 function updateProductCount() {
@@ -597,6 +605,8 @@ async function confirmVisit() {
     document.getElementById('visitorPanel').style.display = 'block';
     clearProducts();
     document.getElementById('sr-notes').value = '';
+    document.getElementById('sr-other-text').value = '';
+    document.getElementById('other-input-wrap').style.display = 'none';
     document.getElementById('sampleAlert').classList.remove('show');
 
     playBeep(600);
@@ -658,7 +668,14 @@ async function submitSampleRequest() {
 
   var checkboxes = document.querySelectorAll('#sr-product-list input[type="checkbox"]:checked');
   var selectedProducts = [];
-  checkboxes.forEach(function(cb) { selectedProducts.push(cb.value); });
+  var otherText = document.getElementById('sr-other-text').value.trim();
+  checkboxes.forEach(function(cb) {
+    if (cb.value === 'その他') {
+      selectedProducts.push(otherText ? 'その他：' + otherText : 'その他');
+    } else {
+      selectedProducts.push(cb.value);
+    }
+  });
 
   if (selectedProducts.length === 0) {
     showAlert('error', '商品を1つ以上選択してください');
@@ -680,6 +697,8 @@ async function submitSampleRequest() {
     playBeep(800);
     clearProducts();
     document.getElementById('sr-notes').value = '';
+    document.getElementById('sr-other-text').value = '';
+    document.getElementById('other-input-wrap').style.display = 'none';
     currentVisitorId = null;
     currentVisitorData = null;
     setTimeout(function() {
