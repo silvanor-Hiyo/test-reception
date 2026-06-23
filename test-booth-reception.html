@@ -523,7 +523,8 @@ async function apiPost(action, body = {}) {
     body: JSON.stringify(body)
   });
   const data = await resp.json();
-  if (!data.success && data.error) throw new Error(data.error);
+  // not_checked_inは例外にせずそのまま返す
+  if (!data.success && data.error && data.error !== 'not_checked_in') throw new Error(data.error);
   return data;
 }
 
@@ -615,10 +616,17 @@ async function confirmVisit() {
   showOverlayLoading();
 
   try {
-    await apiPost('boothVisitByToken', {
+    const visitResult = await apiPost('boothVisitByToken', {
       token: TOKEN,
       visitorId: currentVisitorId
     });
+
+    // 未受付エラー
+    if (!visitResult.success && visitResult.error === 'not_checked_in') {
+      showOverlayNotCheckedIn(currentVisitorData.name, currentVisitorData.company);
+      return;
+    }
+
     hideOverlay();
 
     // 来場者パネルを表示
@@ -794,6 +802,19 @@ function showOverlayPreview(v) {
   document.getElementById('overlayTime').textContent = 'ID: ' + currentVisitorId;
   document.getElementById('overlayButtons').style.display = 'flex';
   document.getElementById('overlayNext').style.display = 'none';
+}
+
+function showOverlayNotCheckedIn(name, company) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay error show';
+  document.getElementById('overlayIcon').textContent = '⚠️';
+  document.getElementById('overlayName').textContent = name + ' 様';
+  document.getElementById('overlayCompany').textContent = company;
+  document.getElementById('overlayMessage').textContent = '入口受付がまだ完了していません';
+  document.getElementById('overlayTime').textContent = '入口スタッフへご案内ください';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'block';
+  playBeep(300);
 }
 
 function showOverlayError(title, sub) {
