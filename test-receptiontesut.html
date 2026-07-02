@@ -246,6 +246,19 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
   white-space: nowrap;
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
+/* ===== スタッフ認証画面 ===== */
+.lock-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, #1a3a9e 0%, #0d1f5c 100%);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.lock-card {
+  background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 28px 24px; width: 100%; max-width: 360px; text-align: center;
+}
+.lock-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+.lock-desc { font-size: 13px; color: var(--text-light); margin-bottom: 16px; line-height: 1.7; }
+.lock-error { font-size: 13px; color: var(--error); margin-top: 10px; min-height: 18px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -338,8 +351,24 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
 
 <div class="toast" id="toast"></div>
 
+<!-- ===== スタッフ認証画面 ===== -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-title">🔒 スタッフ認証</div>
+    <p class="lock-desc">受付を開始するには、<br>スタッフ用の合言葉を入力してください。</p>
+    <input type="password" class="input-field" id="staffKeyInput" placeholder="合言葉"
+      style="width:100%;" onkeydown="if(event.key==='Enter') submitStaffKey()">
+    <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="submitStaffKey()">認証して開始</button>
+    <div class="lock-error" id="lockError"></div>
+  </div>
+</div>
+
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8IQaf54k3qVoCGfGcueOZWcMUKiFSWQH1bj3Ic-CB4ZLdIg/exec';
+
+// ★ スタッフ合言葉（起動時に入力・この端末に記憶される）
+let STAFF_KEY = localStorage.getItem('staffKey') || '';
+function withKey(url) { return url + '&secret=' + encodeURIComponent(STAFF_KEY); }
 
 let html5QrCode = null;
 let isScanning = false;
@@ -423,7 +452,7 @@ function onQrSuccess(decodedText) {
   showOverlayLoading();
   lastScannedId = visitorId;
 
-  fetch(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(visitorId))
+  fetch(withKey(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(visitorId)))
     .then(r => r.json())
     .then(data => {
       if (!data.success) {
@@ -527,7 +556,7 @@ function confirmCheckin() {
   document.getElementById('overlayButtons').style.display = 'none';
   showOverlayLoading();
 
-  fetch(GAS_URL + '?action=checkin&visitorId=' + encodeURIComponent(lastScannedId))
+  fetch(withKey(GAS_URL + '?action=checkin&visitorId=' + encodeURIComponent(lastScannedId)))
     .then(r => r.json())
     .then(data => {
       showOverlayResult(data);
@@ -577,7 +606,7 @@ function manualCheckin() {
     showOverlayLoading();
   }
 
-  fetch(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(id))
+  fetch(withKey(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(id)))
     .then(r => r.json())
     .then(data => {
       if (!data.success) { showOverlayError('来場者が見つかりません', 'ID: ' + id); return; }
@@ -590,7 +619,7 @@ function manualCheckin() {
 // 受付ログ
 // ============================================================
 function loadCheckins() {
-  fetch(GAS_URL + '?action=getCheckins')
+  fetch(withKey(GAS_URL + '?action=getCheckins'))
     .then(r => r.json())
     .then(result => {
       const list = document.getElementById('logList');
@@ -643,9 +672,54 @@ function showToast(msg) {
 // ============================================================
 // 初期化
 // ============================================================
-window.onload = function() {
+// ============================================================
+// スタッフ認証（合言葉）
+// ============================================================
+function showLock(msg) {
+  document.getElementById('lockScreen').style.display = 'flex';
+  document.getElementById('lockError').textContent = msg || '';
+}
+function hideLock() {
+  document.getElementById('lockScreen').style.display = 'none';
+}
+function submitStaffKey() {
+  const key = document.getElementById('staffKeyInput').value.trim();
+  if (!key) { document.getElementById('lockError').textContent = '合言葉を入力してください'; return; }
+  STAFF_KEY = key;
+  document.getElementById('lockError').textContent = '確認中...';
+  fetch(withKey(GAS_URL + '?action=getCheckins'))
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        localStorage.setItem('staffKey', STAFF_KEY);
+        hideLock();
+        startApp();
+      } else {
+        STAFF_KEY = '';
+        document.getElementById('lockError').textContent = '合言葉が違います';
+      }
+    })
+    .catch(() => {
+      document.getElementById('lockError').textContent = '通信エラー。接続を確認してください';
+    });
+}
+function startApp() {
   loadCheckins();
-  setInterval(loadCheckins, 30000);
+  if (!window._logTimer) window._logTimer = setInterval(loadCheckins, 30000);
+}
+
+// ============================================================
+// 起動時：記憶済みの合言葉があれば自動認証
+// ============================================================
+window.onload = function() {
+  if (!STAFF_KEY) { showLock(''); return; }
+  fetch(withKey(GAS_URL + '?action=getCheckins'))
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) { hideLock(); startApp(); }
+      else { STAFF_KEY = ''; localStorage.removeItem('staffKey'); showLock('合言葉を再入力してください'); }
+    })
+    .catch(() => showLock('通信エラー。接続を確認して再入力してください'));
 };
 </script>
 </body>
