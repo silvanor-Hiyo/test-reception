@@ -180,41 +180,6 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #a8ddb8; }
 .alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
 
-/* チェックボックス商品選択 */
-.product-select-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 8px;
-}
-.product-count { font-size: 13px; font-weight: 600; color: var(--navy-mid); }
-.product-select-btns { display: flex; gap: 6px; }
-.product-select-btns button {
-  padding: 4px 12px; font-size: 12px; font-weight: 600;
-  border-radius: 6px; cursor: pointer; font-family: inherit;
-  border: 1.5px solid var(--border); background: white; color: var(--text);
-  transition: all 0.15s;
-}
-.product-select-btns button:hover { background: var(--gold-pale); border-color: var(--gold); }
-
-.product-list { display: flex; flex-direction: column; gap: 6px; }
-.product-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 14px; border-radius: 10px;
-  border: 1.5px solid var(--border); background: white;
-  cursor: pointer; transition: all 0.15s; user-select: none;
-}
-.product-item:hover { background: var(--gold-pale); border-color: var(--gold); }
-.product-item.selected { background: #eef2ff; border-color: var(--navy-mid); }
-.product-check {
-  width: 22px; height: 22px; min-width: 22px;
-  border: 2px solid var(--border); border-radius: 5px;
-  background: white; display: flex; align-items: center; justify-content: center;
-  font-size: 14px; transition: all 0.15s;
-}
-.product-item.selected .product-check {
-  background: var(--navy-mid); border-color: var(--navy-mid); color: white;
-}
-.product-item-name { font-size: 15px; font-weight: 500; color: var(--text); flex: 1; }
-
 /* サンプルテーブル */
 .table-wrap { overflow-x: auto; margin: 8px -4px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -333,20 +298,14 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
       <div class="v-company" id="visitorCompany"></div>
     </div>
     <div class="card">
-      <div class="card-title"><span>📦</span>サンプル依頼 <span id="sr-badge" style="background:var(--navy-mid);color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-left:4px;display:none;">0</span></div>
+      <div class="card-title"><span>📦</span>サンプル依頼</div>
       <div class="form-group">
-        <label>商品を選んでください（複数選択可）</label>
-        <div class="product-select-header">
-          <div class="product-count" id="sr-count">0件選択中</div>
-          <div class="product-select-btns">
-            <button onclick="selectAllProducts()">すべて選択</button>
-            <button onclick="clearProducts()">クリア</button>
-          </div>
-        </div>
-        <div class="product-list" id="sr-product-list"></div>
-        <div id="other-input-wrap" style="display:none;margin-top:8px;">
-          <input type="text" class="input-field" id="sr-other-text" placeholder="その他の商品名を入力してください" style="width:100%;">
-        </div>
+        <label>商品名</label>
+        <select id="sr-product"><option value="">商品を選択...</option></select>
+      </div>
+      <div class="form-group">
+        <label>数量</label>
+        <input type="number" id="sr-quantity" value="1" min="1" max="99">
       </div>
       <div class="form-group">
         <label>備考（配送先・用途など）</label>
@@ -427,80 +386,12 @@ function showError() {
   document.getElementById('headerBoothName').textContent = 'アクセスエラー';
 }
 
-// 選択状態をJS配列で管理（チェックボックス廃止）
-var selectedProductSet = {};
-
-// 商品リストをグローバルに保持
-var productList = [];
-
 function setProductOptions(productsStr) {
-  var list = document.getElementById('sr-product-list');
-  productList = String(productsStr || '').split(',').map(function(p) { return p.trim(); }).filter(Boolean);
-  productList.push('その他');
-  selectedProductSet = {};
-  list.innerHTML = productList.map(function(p, i) {
-    return '<div class="product-item" id="pi-' + i + '" onclick="toggleProduct(' + i + ')">' +
-      '<div class="product-check" id="pc-' + i + '"></div>' +
-      '<span class="product-item-name">' + p + '</span>' +
-      '</div>';
-  }).join('');
-  updateProductCount();
-}
-
-function toggleProduct(idx) {
-  var value = productList[idx];
-  var item = document.getElementById('pi-' + idx);
-  var check = document.getElementById('pc-' + idx);
-  if (selectedProductSet[idx]) {
-    delete selectedProductSet[idx];
-    item.classList.remove('selected');
-    check.textContent = '';
-  } else {
-    selectedProductSet[idx] = value;
-    item.classList.add('selected');
-    check.textContent = '✓';
-  }
-  updateProductCount();
-  var otherChecked = false;
-  for (var k in selectedProductSet) {
-    if (selectedProductSet[k] === 'その他') { otherChecked = true; break; }
-  }
-  document.getElementById('other-input-wrap').style.display = otherChecked ? 'block' : 'none';
-  if (!otherChecked) document.getElementById('sr-other-text').value = '';
-}
-
-function updateProductCount() {
-  var count = Object.keys(selectedProductSet).length;
-  document.getElementById('sr-count').textContent = count + '件選択中';
-}
-
-function selectAllProducts() {
-  var items = document.querySelectorAll('#sr-product-list .product-item');
-  items.forEach(function(item, i) {
-    var name = item.querySelector('.product-item-name').textContent;
-    selectedProductSet[i] = name;
-    item.classList.add('selected');
-    var check = document.getElementById('pc-' + i);
-    if (check) check.textContent = '✓';
-  });
-  updateProductCount();
-  var otherChecked = false;
-  for (var k in selectedProductSet) {
-    if (selectedProductSet[k] === 'その他') { otherChecked = true; break; }
-  }
-  document.getElementById('other-input-wrap').style.display = otherChecked ? 'block' : 'none';
-}
-
-function clearProducts() {
-  selectedProductSet = {};
-  document.querySelectorAll('#sr-product-list .product-item').forEach(function(item, i) {
-    item.classList.remove('selected');
-    var check = document.getElementById('pc-' + i);
-    if (check) check.textContent = '';
-  });
-  updateProductCount();
-  document.getElementById('other-input-wrap').style.display = 'none';
-  document.getElementById('sr-other-text').value = '';
+  const sel = document.getElementById('sr-product');
+  const products = String(productsStr || '').split(',').map(p => p.trim()).filter(Boolean);
+  sel.innerHTML = '<option value="">商品を選択...</option>' +
+    products.map(p => `<option value="${p}">${p}</option>`).join('') +
+    '<option value="その他">その他</option>';
 }
 
 // ============================================================
@@ -523,8 +414,7 @@ async function apiPost(action, body = {}) {
     body: JSON.stringify(body)
   });
   const data = await resp.json();
-  // not_checked_inは例外にせずそのまま返す
-  if (!data.success && data.error && data.error !== 'not_checked_in') throw new Error(data.error);
+  if (!data.success && data.error) throw new Error(data.error);
   return data;
 }
 
@@ -602,7 +492,7 @@ function onQrSuccess(decodedText) {
 async function processVisitor(visitorId) {
   currentVisitorId = visitorId;
   try {
-    const result = await apiGet('getVisitorInfo', { visitorId: visitorId });
+    const result = await apiGet('getVisitorInfo', { visitorId: visitorId, token: TOKEN });
     currentVisitorData = result.visitor;
     showOverlayPreview(result.visitor);
   } catch(e) {
@@ -616,17 +506,10 @@ async function confirmVisit() {
   showOverlayLoading();
 
   try {
-    const visitResult = await apiPost('boothVisitByToken', {
+    await apiPost('boothVisitByToken', {
       token: TOKEN,
       visitorId: currentVisitorId
     });
-
-    // 未受付エラー
-    if (!visitResult.success && visitResult.error === 'not_checked_in') {
-      showOverlayNotCheckedIn(currentVisitorData.name, currentVisitorData.company);
-      return;
-    }
-
     hideOverlay();
 
     // 来場者パネルを表示
@@ -634,10 +517,9 @@ async function confirmVisit() {
     document.getElementById('visitorCompany').textContent =
       currentVisitorData.company + (currentVisitorData.department ? '　' + currentVisitorData.department : '');
     document.getElementById('visitorPanel').style.display = 'block';
-    clearProducts();
+    document.getElementById('sr-product').selectedIndex = 0;
+    document.getElementById('sr-quantity').value = '1';
     document.getElementById('sr-notes').value = '';
-    document.getElementById('sr-other-text').value = '';
-    document.getElementById('other-input-wrap').style.display = 'none';
     document.getElementById('sampleAlert').classList.remove('show');
 
     playBeep(600);
@@ -696,43 +578,19 @@ function manualProcess() {
 // ============================================================
 async function submitSampleRequest() {
   if (!currentVisitorId) return;
-
-  var selectedProducts = [];
-  var otherText = document.getElementById('sr-other-text').value.trim();
-  for (var k in selectedProductSet) {
-    var val = selectedProductSet[k];
-    if (val === 'その他') {
-      selectedProducts.push(otherText ? 'その他：' + otherText : 'その他');
-    } else {
-      selectedProducts.push(val);
-    }
-  }
-
-  if (selectedProducts.length === 0) {
-    showAlert('error', '商品を1つ以上選択してください');
-    return;
-  }
-
-  var notes = document.getElementById('sr-notes').value;
-
   try {
-    // 選択された商品をまとめて1件のリクエストとして送信（カンマ区切り）
     await apiPost('sampleRequestByToken', {
       token: TOKEN,
       visitorId: currentVisitorId,
-      product_name: selectedProducts.join('、'),
-      quantity: selectedProducts.length,
-      notes: notes
+      product_name: document.getElementById('sr-product').value,
+      quantity: document.getElementById('sr-quantity').value,
+      notes: document.getElementById('sr-notes').value
     });
-    showAlert('success', '✅ サンプル依頼を送信しました！（' + selectedProducts.length + '件）');
+    showAlert('success', '✅ サンプル依頼を送信しました！');
     playBeep(800);
-    clearProducts();
-    document.getElementById('sr-notes').value = '';
-    document.getElementById('sr-other-text').value = '';
-    document.getElementById('other-input-wrap').style.display = 'none';
     currentVisitorId = null;
     currentVisitorData = null;
-    setTimeout(function() {
+    setTimeout(() => {
       document.getElementById('visitorPanel').style.display = 'none';
       loadSamples();
     }, 2000);
@@ -802,19 +660,6 @@ function showOverlayPreview(v) {
   document.getElementById('overlayTime').textContent = 'ID: ' + currentVisitorId;
   document.getElementById('overlayButtons').style.display = 'flex';
   document.getElementById('overlayNext').style.display = 'none';
-}
-
-function showOverlayNotCheckedIn(name, company) {
-  const ov = document.getElementById('overlay');
-  ov.className = 'overlay error show';
-  document.getElementById('overlayIcon').textContent = '⚠️';
-  document.getElementById('overlayName').textContent = name + ' 様';
-  document.getElementById('overlayCompany').textContent = company;
-  document.getElementById('overlayMessage').textContent = '入口受付がまだ完了していません';
-  document.getElementById('overlayTime').textContent = '入口スタッフへご案内ください';
-  document.getElementById('overlayButtons').style.display = 'none';
-  document.getElementById('overlayNext').style.display = 'block';
-  playBeep(300);
 }
 
 function showOverlayError(title, sub) {
