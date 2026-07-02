@@ -370,6 +370,30 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8
 let STAFF_KEY = localStorage.getItem('staffKey') || '';
 function withKey(url) { return url + '&secret=' + encodeURIComponent(STAFF_KEY); }
 
+// ============================================================
+// ★ 自動リトライ付き通信
+// 回線混雑やGASの同時実行上限で失敗したとき、
+// 少し待って自動でやり直す（最大4回。待ち時間は倍々＋ランダム）
+// ============================================================
+async function fetchJsonWithRetry(url, options) {
+  let lastError;
+  for (let attempt = 0; attempt <= 4; attempt++) {
+    if (attempt > 0) {
+      const wait = Math.min(500 * Math.pow(2, attempt - 1), 4000) + Math.random() * 400;
+      await new Promise(res => setTimeout(res, wait));
+    }
+    try {
+      const resp = await fetch(url, options);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
+
 let html5QrCode = null;
 let isScanning = false;
 let scanPaused = false;
@@ -452,8 +476,7 @@ function onQrSuccess(decodedText) {
   showOverlayLoading();
   lastScannedId = visitorId;
 
-  fetch(withKey(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(visitorId)))
-    .then(r => r.json())
+  fetchJsonWithRetry(withKey(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(visitorId)))
     .then(data => {
       if (!data.success) {
         showOverlayError('来場者が見つかりません', 'ID: ' + visitorId);
@@ -556,8 +579,7 @@ function confirmCheckin() {
   document.getElementById('overlayButtons').style.display = 'none';
   showOverlayLoading();
 
-  fetch(withKey(GAS_URL + '?action=checkin&visitorId=' + encodeURIComponent(lastScannedId)))
-    .then(r => r.json())
+  fetchJsonWithRetry(withKey(GAS_URL + '?action=checkin&visitorId=' + encodeURIComponent(lastScannedId)))
     .then(data => {
       showOverlayResult(data);
       loadCheckins();
@@ -606,8 +628,7 @@ function manualCheckin() {
     showOverlayLoading();
   }
 
-  fetch(withKey(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(id)))
-    .then(r => r.json())
+  fetchJsonWithRetry(withKey(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(id)))
     .then(data => {
       if (!data.success) { showOverlayError('来場者が見つかりません', 'ID: ' + id); return; }
       showOverlayPreview(data.visitor);
@@ -619,8 +640,7 @@ function manualCheckin() {
 // 受付ログ
 // ============================================================
 function loadCheckins() {
-  fetch(withKey(GAS_URL + '?action=getCheckins'))
-    .then(r => r.json())
+  fetchJsonWithRetry(withKey(GAS_URL + '?action=getCheckins'))
     .then(result => {
       const list = document.getElementById('logList');
       const data = (result.data || []).slice().reverse();
@@ -687,8 +707,7 @@ function submitStaffKey() {
   if (!key) { document.getElementById('lockError').textContent = '合言葉を入力してください'; return; }
   STAFF_KEY = key;
   document.getElementById('lockError').textContent = '確認中...';
-  fetch(withKey(GAS_URL + '?action=getCheckins'))
-    .then(r => r.json())
+  fetchJsonWithRetry(withKey(GAS_URL + '?action=getCheckins'))
     .then(data => {
       if (data.success) {
         localStorage.setItem('staffKey', STAFF_KEY);
@@ -713,8 +732,7 @@ function startApp() {
 // ============================================================
 window.onload = function() {
   if (!STAFF_KEY) { showLock(''); return; }
-  fetch(withKey(GAS_URL + '?action=getCheckins'))
-    .then(r => r.json())
+  fetchJsonWithRetry(withKey(GAS_URL + '?action=getCheckins'))
     .then(data => {
       if (data.success) { hideLock(); startApp(); }
       else { STAFF_KEY = ''; localStorage.removeItem('staffKey'); showLock('合言葉を再入力してください'); }
