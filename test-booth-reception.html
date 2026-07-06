@@ -361,10 +361,10 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>数量</th><th>状態</th></tr>
+          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>数量</th></tr>
         </thead>
         <tbody id="sampleTable">
-          <tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
         </tbody>
       </table>
     </div>
@@ -762,19 +762,17 @@ async function loadSamples() {
     const samples = result.data || [];
     const tbody = document.getElementById('sampleTable');
     if (samples.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
       return;
     }
     tbody.innerHTML = samples.map(s => {
-      const statusClass = (s.status === '完了' || s.status === '発送済み') ? 'tag-done' : 'tag-pending';
       const time = s.requested_at ? new Date(s.requested_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '--:--';
       return `<tr>
         <td>${time}</td>
         <td>${s.visitor_name || ''}</td>
-        <td style="max-width:80px;overflow:hidden;text-overflow:ellipsis;">${s.visitor_company || ''}</td>
+        <td>${s.visitor_company || ''}</td>
         <td>${s.product_name || ''}</td>
         <td>${s.quantity || ''}</td>
-        <td><span class="tag ${statusClass}">${s.status || ''}</span></td>
       </tr>`;
     }).join('');
   } catch(e) { console.error(e); }
