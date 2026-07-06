@@ -96,7 +96,7 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
   background: #000;
   display: none;
 }
-.camera-wrap.active { display: block; }
+.camera-wrap.active { display: block; min-height: 400px; }
 
 .camera-header {
   background: var(--navy);
@@ -615,8 +615,12 @@ function resetScan() {
 
   if (html5QrCode && isScanning) {
     try { html5QrCode.resume(); } catch(e) {}
+    setStatus('scanning', 'スキャン待機中');
+  } else {
+    // カメラ未起動なら枠を閉じてスタートボタンを戻す
+    document.getElementById('cameraWrap').classList.remove('active');
+    document.getElementById('startBtn').style.display = 'flex';
   }
-  setStatus('scanning', 'スキャン待機中');
 }
 
 // ============================================================
@@ -799,4 +803,3 @@ window.onload = function() {
 </script>
 </body>
 </html>
-
