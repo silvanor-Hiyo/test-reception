@@ -39,14 +39,22 @@ body {
 .header {
   background: linear-gradient(160deg, #1a3a9e 0%, #0d1f5c 100%);
   border-bottom: 3px solid var(--gold);
-  padding: 16px 20px;
+  padding: 14px 16px;
   text-align: center;
   position: sticky; top: 0; z-index: 100;
   box-shadow: 0 2px 12px rgba(13,31,92,0.4);
+  position: relative;
 }
 .header-event { font-size: 10px; letter-spacing: 3px; color: rgba(200,168,75,0.8); font-weight: 600; margin-bottom: 4px; }
 .header h1 { font-size: 18px; font-weight: 700; color: white; margin-bottom: 4px; }
 .header-booth { font-size: 15px; color: var(--gold-light); font-weight: 600; }
+.btn-logout {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.3); border-radius: 20px;
+  padding: 5px 11px; font-size: 11px; font-weight: 600;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+}
 
 main { max-width: 560px; margin: 0 auto; padding: 16px; }
 
@@ -107,13 +115,14 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .overlay.success { background: rgba(26,110,53,0.93); }
 .overlay.duplicate { background: rgba(146,64,14,0.93); }
 .overlay.error { background: rgba(139,26,26,0.93); }
+.overlay.warning { background: rgba(146,64,14,0.95); }
 .overlay.loading { background: rgba(13,31,92,0.85); }
 @keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
 
 .overlay-icon { font-size: 48px; margin-bottom: 8px; }
 .overlay-name { font-size: 22px; font-weight: 700; color: white; margin-bottom: 4px; text-align: center; }
 .overlay-company { font-size: 13px; color: rgba(255,255,255,0.8); margin-bottom: 8px; text-align: center; line-height: 1.5; }
-.overlay-message { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); text-align: center; }
+.overlay-message { font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.95); text-align: center; line-height: 1.7; }
 .overlay-time { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; }
 .overlay-buttons { display: flex; gap: 10px; margin-top: 16px; width: 100%; }
 .overlay-buttons .btn { flex: 1; }
@@ -209,12 +218,32 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 
 /* サンプルテーブル */
 .table-wrap { overflow-x: auto; margin: 8px -4px; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 10px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
 th { font-weight: 600; color: var(--text-light); font-size: 12px; }
-.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.tag { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: 12px; font-weight: 600; }
 .tag-pending { background: var(--warning-bg); color: var(--warning); }
 .tag-done { background: var(--success-bg); color: var(--success); }
+.tag-cancel { background: #eeeeee; color: #888888; }
+tr.row-cancel td { color: #aaaaaa; text-decoration: line-through; }
+tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
+
+/* 数量修正・取消ボタン */
+.qty-cell { display: flex; align-items: center; gap: 4px; }
+.btn-qty {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--white);
+  font-size: 18px; font-weight: 700; color: var(--navy-mid);
+  font-family: inherit; cursor: pointer; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.btn-qty:active { background: var(--gold-pale); }
+.qty-num { min-width: 24px; text-align: center; font-weight: 700; font-size: 15px; }
+.btn-cancel-sample {
+  padding: 6px 10px; font-size: 12px; font-weight: 600; font-family: inherit;
+  background: transparent; color: var(--danger); border: 1.5px solid #f0c8c8;
+  border-radius: 6px; cursor: pointer;
+}
 
 /* エラー画面 */
 .error-screen { text-align: center; padding: 60px 20px; }
@@ -244,6 +273,21 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
   white-space: nowrap;
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
+
+/* パスワード認証画面 */
+.lock-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, #1a3a9e 0%, #0d1f5c 100%);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.lock-screen.show { display: flex; }
+.lock-card {
+  background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 28px 24px; width: 100%; max-width: 360px; text-align: center;
+}
+.lock-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+.lock-desc { font-size: 13px; color: var(--text-light); margin-bottom: 16px; line-height: 1.7; }
+.lock-error { font-size: 13px; color: var(--danger); margin-top: 10px; min-height: 18px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -252,6 +296,7 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
   <div class="header-event">EIWA BUSSAN FOOD EXHIBITION 2026</div>
   <h1>ブース受付システム</h1>
   <div class="header-booth" id="headerBoothName">読み込み中...</div>
+  <button class="btn-logout" id="logoutBtn" style="display:none;" onclick="boothLogout()">ログアウト</button>
 </div>
 
 <!-- エラー画面 -->
@@ -259,6 +304,18 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
   <div class="icon">🔒</div>
   <h2>アクセスできません</h2>
   <p>URLが正しくないか、有効期限が切れています。<br>永和物産の担当者にお問い合わせください。</p>
+</div>
+
+<!-- パスワード認証画面 -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-title">🔒 ブース認証</div>
+    <p class="lock-desc">ブース受付を開始するには、<br>永和物産よりご案内した<br><strong>ブース用パスワード</strong>を入力してください。</p>
+    <input type="password" class="input-field" id="boothKeyInput" placeholder="パスワード"
+      style="width:100%;" onkeydown="if(event.key==='Enter') submitBoothKey()">
+    <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="submitBoothKey()">認証して開始</button>
+    <div class="lock-error" id="lockError"></div>
+  </div>
 </div>
 
 <!-- メインコンテンツ -->
@@ -355,16 +412,19 @@ th { font-weight: 600; color: var(--text-light); font-size: 12px; }
   <!-- サンプル依頼一覧 -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <div class="card-title" style="margin:0"><span>📋</span>本日のサンプル依頼</div>
+      <div class="card-title" style="margin:0"><span>📋</span>サンプル依頼一覧</div>
       <button class="btn btn-outline-dark" onclick="loadSamples()" style="padding:6px 12px;font-size:12px;">更新</button>
     </div>
+    <p style="font-size:12px;color:var(--text-light);margin-bottom:8px;">
+      数量の「−」「＋」で修正、「取消」で依頼を取り消せます
+    </p>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>数量</th></tr>
+          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>数量</th><th>状態</th><th>操作</th></tr>
         </thead>
         <tbody id="sampleTable">
-          <tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
         </tbody>
       </table>
     </div>
@@ -383,9 +443,89 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8
 const urlParams = new URLSearchParams(window.location.search);
 const TOKEN = urlParams.get('token') || '';
 
+// ============================================================
+// ★ ブース用パスワード認証の管理
+//  - URLに加えてパスワード（BOOTH_SECRET）の入力が必要
+//  - 30分間操作がなければ自動ログアウト
+//  - ヘッダーの「ログアウト」ボタンで手動ログアウト
+// ============================================================
+const BOOTH_IDLE_LIMIT_MS = 30 * 60 * 1000; // 無操作30分で自動ログアウト
+const AUTH_STORE_KEY = 'boothAuth_' + TOKEN;
+
+let BOOTH_KEY = '';
+
+function loadSavedAuth() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(AUTH_STORE_KEY) || 'null');
+    if (!saved || !saved.key || !saved.t) return '';
+    if (Date.now() - saved.t > BOOTH_IDLE_LIMIT_MS) {
+      localStorage.removeItem(AUTH_STORE_KEY);
+      return '';
+    }
+    return saved.key;
+  } catch(e) { return ''; }
+}
+
+function saveAuth() {
+  localStorage.setItem(AUTH_STORE_KEY, JSON.stringify({ key: BOOTH_KEY, t: Date.now() }));
+}
+
+function touchActivity() {
+  if (BOOTH_KEY) saveAuth(); // 操作のたびに時刻を更新
+}
+
+function boothLogout(message) {
+  BOOTH_KEY = '';
+  localStorage.removeItem(AUTH_STORE_KEY);
+  try { stopCamera(); } catch(e) {}
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
+  showBoothLock(message || 'ログアウトしました');
+}
+
+document.addEventListener('click', touchActivity);
+document.addEventListener('touchstart', touchActivity);
+document.addEventListener('keydown', touchActivity);
+
+// 1分ごとに期限チェック
+setInterval(function() {
+  if (BOOTH_KEY && !loadSavedAuth()) {
+    boothLogout('一定時間操作がなかったため、再度パスワードを入力してください');
+  }
+}, 60 * 1000);
+
+function showBoothLock(msg) {
+  document.getElementById('lockScreen').classList.add('show');
+  document.getElementById('lockError').textContent = msg || '';
+}
+function hideBoothLock() {
+  document.getElementById('lockScreen').classList.remove('show');
+}
+
+async function submitBoothKey() {
+  const key = document.getElementById('boothKeyInput').value.trim();
+  if (!key) { document.getElementById('lockError').textContent = 'パスワードを入力してください'; return; }
+  document.getElementById('lockError').textContent = '確認中...';
+  BOOTH_KEY = key;
+  try {
+    const result = await apiGet('getBoothByToken', { token: TOKEN });
+    saveAuth();
+    hideBoothLock();
+    startBooth(result.booth);
+  } catch(e) {
+    BOOTH_KEY = '';
+    if (e.code === 'booth_auth') {
+      document.getElementById('lockError').textContent = 'パスワードが違います';
+    } else {
+      document.getElementById('lockError').textContent = 'エラー：' + (e.message || '接続を確認してください');
+    }
+  }
+}
+
 let boothInfo = null;
 let currentVisitorId = null;
 let currentVisitorData = null;
+let currentSamples = [];
 let html5QrCode = null;
 let isScanning = false;
 let scanPaused = false;
@@ -399,18 +539,37 @@ async function init() {
     showError();
     return;
   }
+  // 保存済みのパスワードが有効期限内ならそのまま開始、なければ入力を求める
+  BOOTH_KEY = loadSavedAuth();
+  if (!BOOTH_KEY) {
+    document.getElementById('headerBoothName').textContent = '認証してください';
+    showBoothLock('');
+    return;
+  }
   try {
     const result = await apiGet('getBoothByToken', { token: TOKEN });
-    boothInfo = result.booth;
-    document.getElementById('headerBoothName').textContent =
-      (boothInfo.booth_number ? boothInfo.booth_number + '番　' : '') + boothInfo.company;
-    document.getElementById('errorScreen').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
-    setProductOptions(boothInfo.products);
-    await loadSamples();
+    startBooth(result.booth);
   } catch(e) {
-    showError();
+    if (e.code === 'booth_auth') {
+      BOOTH_KEY = '';
+      localStorage.removeItem(AUTH_STORE_KEY);
+      document.getElementById('headerBoothName').textContent = '認証してください';
+      showBoothLock('パスワードを再入力してください');
+    } else {
+      showError();
+    }
   }
+}
+
+async function startBooth(booth) {
+  boothInfo = booth;
+  document.getElementById('headerBoothName').textContent =
+    (boothInfo.booth_number ? boothInfo.booth_number + '番　' : '') + boothInfo.company;
+  document.getElementById('errorScreen').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('logoutBtn').style.display = 'block';
+  setProductOptions(boothInfo.products);
+  await loadSamples();
 }
 
 function showError() {
@@ -527,22 +686,30 @@ async function fetchJsonWithRetry(url, options) {
   throw lastError;
 }
 
+// エラーの種類（error）とメッセージ（message）を両方持たせて投げる
+function makeApiError(data) {
+  const err = new Error(data.message || data.error || 'エラーが発生しました');
+  err.code = data.error || '';
+  return err;
+}
+
 async function apiGet(action, params = {}) {
-  let url = GAS_URL + '?action=' + action;
+  let url = GAS_URL + '?action=' + action + '&boothKey=' + encodeURIComponent(BOOTH_KEY);
   for (let key in params) url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
   const data = await fetchJsonWithRetry(url);
-  if (!data.success && data.error) throw new Error(data.error);
+  if (!data.success && data.error) throw makeApiError(data);
   return data;
 }
 
 async function apiPost(action, body = {}) {
   const url = GAS_URL + '?action=' + action;
+  body.boothKey = BOOTH_KEY;
   const data = await fetchJsonWithRetry(url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(body)
   });
-  if (!data.success && data.error) throw new Error(data.error);
+  if (!data.success && data.error) throw makeApiError(data);
   return data;
 }
 
@@ -606,6 +773,7 @@ function onQrSuccess(decodedText) {
 
   if (!visitorId) { showToast('QRコードを認識できませんでした'); return; }
 
+  touchActivity();
   scanPaused = true;
   if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
   setStatus('paused', '確認中...');
@@ -624,6 +792,10 @@ async function processVisitor(visitorId) {
     currentVisitorData = result.visitor;
     showOverlayPreview(result.visitor);
   } catch(e) {
+    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+      return;
+    }
     showOverlayError('来場者が見つかりません', 'ID: ' + visitorId);
   }
 }
@@ -657,7 +829,14 @@ async function confirmVisit() {
     scanPaused = false;
 
   } catch(e) {
-    showOverlayError('エラーが発生しました', e.message);
+    if (e.code === 'not_checked_in') {
+      // ★ エラーコードではなく、分かりやすい日本語で案内する
+      showOverlayNotCheckedIn(e.message);
+    } else if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    } else {
+      showOverlayError('エラーが発生しました', e.message);
+    }
   }
 }
 
@@ -740,7 +919,13 @@ async function submitSampleRequest() {
       loadSamples();
     }, 2000);
   } catch(e) {
-    showAlert('error', 'エラー: ' + e.message);
+    if (e.code === 'not_checked_in') {
+      showAlert('error', e.message);
+    } else if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    } else {
+      showAlert('error', 'エラー: ' + e.message);
+    }
   }
 }
 
@@ -754,28 +939,103 @@ async function recordVisitOnly() {
 }
 
 // ============================================================
-// サンプル一覧
+// サンプル一覧（数量修正・取消ボタンつき）
 // ============================================================
 async function loadSamples() {
   try {
     const result = await apiGet('getBoothSamplesByToken', { token: TOKEN });
     const samples = result.data || [];
+    currentSamples = samples;
     const tbody = document.getElementById('sampleTable');
     if (samples.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
       return;
     }
     tbody.innerHTML = samples.map(s => {
+      const isCancelled = s.status === '取消';
+      const statusClass = isCancelled ? 'tag-cancel'
+        : (s.status === '完了' || s.status === '発送済み') ? 'tag-done' : 'tag-pending';
       const time = s.requested_at ? new Date(s.requested_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '--:--';
-      return `<tr>
-        <td>${time}</td>
-        <td>${s.visitor_name || ''}</td>
-        <td>${s.visitor_company || ''}</td>
-        <td>${s.product_name || ''}</td>
-        <td>${s.quantity || ''}</td>
-      </tr>`;
+      const qty = parseInt(s.quantity, 10) || 1;
+
+      let qtyCell = '<span class="qty-num">' + qty + '</span>';
+      let opCell = '';
+      if (!isCancelled) {
+        qtyCell = '<div class="qty-cell">'
+          + '<button class="btn-qty" onclick="changeQty(\'' + s.id + '\', -1)">−</button>'
+          + '<span class="qty-num">' + qty + '</span>'
+          + '<button class="btn-qty" onclick="changeQty(\'' + s.id + '\', 1)">＋</button>'
+          + '</div>';
+        opCell = '<button class="btn-cancel-sample" onclick="cancelSample(\'' + s.id + '\')">取消</button>';
+      }
+
+      return '<tr class="' + (isCancelled ? 'row-cancel' : '') + '">'
+        + '<td>' + time + '</td>'
+        + '<td>' + escapeHtml(s.visitor_name || '') + '</td>'
+        + '<td>' + escapeHtml(s.visitor_company || '') + '</td>'
+        + '<td>' + escapeHtml(s.product_name || '') + '</td>'
+        + '<td>' + qtyCell + '</td>'
+        + '<td><span class="tag ' + statusClass + '">' + escapeHtml(s.status || '') + '</span></td>'
+        + '<td>' + opCell + '</td>'
+        + '</tr>';
     }).join('');
-  } catch(e) { console.error(e); }
+  } catch(e) {
+    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    }
+    console.error(e);
+  }
+}
+
+// ============================================================
+// ★ 数量の修正（−／＋ボタン）
+// ============================================================
+let qtyBusy = false;
+async function changeQty(sampleId, delta) {
+  if (qtyBusy) return; // 連打防止
+  const s = currentSamples.find(x => x.id === sampleId);
+  if (!s) return;
+  const current = parseInt(s.quantity, 10) || 1;
+  const newQty = current + delta;
+  if (newQty < 1) { showToast('数量は1以上です。取り消す場合は「取消」を押してください'); return; }
+  if (newQty > 999) return;
+
+  qtyBusy = true;
+  try {
+    await apiPost('updateSampleByToken', { token: TOKEN, sampleId: sampleId, quantity: newQty });
+    s.quantity = newQty; // 画面の値も更新
+    await loadSamples();
+  } catch(e) {
+    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    } else {
+      showToast('修正できませんでした：' + e.message);
+    }
+  } finally {
+    qtyBusy = false;
+  }
+}
+
+// ============================================================
+// ★ 依頼の取消（データは消えず「取消」として残る）
+// ============================================================
+async function cancelSample(sampleId) {
+  if (!confirm('このサンプル依頼を取り消しますか？')) return;
+  try {
+    await apiPost('cancelSampleByToken', { token: TOKEN, sampleId: sampleId });
+    showToast('依頼を取り消しました');
+    await loadSamples();
+  } catch(e) {
+    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    } else {
+      showToast('取消できませんでした：' + e.message);
+    }
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ============================================================
@@ -803,6 +1063,20 @@ function showOverlayPreview(v) {
   document.getElementById('overlayTime').textContent = 'ID: ' + currentVisitorId;
   document.getElementById('overlayButtons').style.display = 'flex';
   document.getElementById('overlayNext').style.display = 'none';
+}
+
+// ★ 入口未受付の来場者向けの案内表示（エラーコードは見せない）
+function showOverlayNotCheckedIn(message) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay warning show';
+  document.getElementById('overlayIcon').textContent = '🙏';
+  document.getElementById('overlayName').textContent = '入口受付がお済みでないようです';
+  document.getElementById('overlayCompany').textContent = '';
+  document.getElementById('overlayMessage').textContent = message ||
+    'この来場者様は、まだ入口での受付が完了していません。入口受付にご案内いただき、受付後にもう一度QRコードを読み取ってください。';
+  document.getElementById('overlayTime').textContent = '';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'block';
 }
 
 function showOverlayError(title, sub) {
@@ -857,7 +1131,7 @@ function showToast(msg) {
 // ============================================================
 window.onload = function() {
   init();
-  setInterval(loadSamples, 60000);
+  setInterval(function() { if (BOOTH_KEY) loadSamples(); }, 60000);
 };
 </script>
 </body>
