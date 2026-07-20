@@ -319,6 +319,11 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
     <p class="lock-desc">ブース受付を開始するには、<br>永和物産よりご案内した<br><strong>ブース用パスワード</strong>を入力してください。</p>
     <input type="password" class="input-field" id="boothKeyInput" placeholder="パスワード"
       style="width:100%;" onkeydown="if(event.key==='Enter') submitBoothKey()">
+    <label style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:13px;color:var(--text-light);cursor:pointer;user-select:none;">
+      <input type="checkbox" style="width:16px;height:16px;"
+        onchange="document.getElementById('boothKeyInput').type = this.checked ? 'text' : 'password'">
+      パスワードを表示する
+    </label>
     <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="submitBoothKey()">認証して開始</button>
     <div class="lock-error" id="lockError"></div>
   </div>
