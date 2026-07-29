@@ -669,6 +669,15 @@ function showOverlayLoading() {
 
 function showOverlayPreview(v) {
   currentVisitor = v;
+
+  // ★ 渡し済みの仮カードを読んだときは、受付せずに警告を出す
+  //   （部署名に【カードNo.○○○】が入っていたら、渡し済みのカード）
+  const cardMark = String(v.department || '').match(/【カードNo\.([^】]+)】/);
+  if (cardMark && lastScanMethod === 'QR') {
+    showOverlayCardUsed(v, cardMark[1]);
+    return;
+  }
+
   const ov = document.getElementById('overlay');
   ov.className = 'overlay preview show';
   document.getElementById('overlayIcon').textContent = '👤';
@@ -702,6 +711,27 @@ function checkinWithoutCard() {
     'よろしいですか？');
   if (!ok) return;
   confirmCheckin();
+}
+
+// ★ すでにお客様にお渡し済みのカードを読んだとき
+function showOverlayCardUsed(v, cardNo) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay duplicate show';
+  document.getElementById('overlayIcon').textContent = '⚠️';
+  document.getElementById('overlayName').textContent = 'お渡し済みのカードです';
+  document.getElementById('overlayCompany').textContent =
+    (v.company || '') + '　' + (v.name || '') + ' 様';
+  document.getElementById('overlayMessage').textContent =
+    'この方は受付が済んでいます。もう一度受付する必要はありません。';
+  document.getElementById('overlayTime').textContent = '';
+  hideAllOverlayBlocks();
+
+  const cardBox = document.getElementById('overlayCardNo');
+  cardBox.innerHTML = '<span class="card-no-badge">🎫 カード No.' + escapeHtml(cardNo) + '</span>';
+  cardBox.style.display = 'block';
+
+  document.getElementById('overlayNext').style.display = 'block';
+  playSound('duplicate');
 }
 
 function showOverlayResult(result) {
