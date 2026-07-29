@@ -361,6 +361,12 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
           <button class="btn btn-danger" onclick="cancelCheckin()">❌ キャンセル</button>
           <button class="btn btn-primary" id="btnCheckin" onclick="confirmCheckin()">✅ 受付する</button>
         </div>
+        <div id="noCardLink" style="display:none;text-align:center;margin-top:22px;">
+          <span onclick="checkinWithoutCard()"
+            style="font-size:11px;color:rgba(255,255,255,0.45);text-decoration:underline;cursor:pointer;padding:6px 10px;">
+            カードを渡さずに受付する
+          </span>
+        </div>
       </div>
 
       <!-- 仮カードのスキャン待ち -->
@@ -670,8 +676,23 @@ function showOverlayPreview(v) {
   const isTempCard = String(v.company || '').indexOf('当日受付') >= 0;
   const canAssign  = (lastScanMethod === '検索') && !isTempCard;
 
-  document.getElementById('btnAssign').style.display = canAssign ? 'flex' : 'none';
-  document.getElementById('btnCheckin').textContent  = canAssign ? 'カードなしで受付' : '✅ 受付する';
+  // 仮カードを渡す場合は、緑の大きいボタンだけを目立たせる。
+  // 「カードを渡さずに受付」は下の小さな文字リンクにして、押し間違いを防ぐ。
+  document.getElementById('btnAssign').style.display   = canAssign ? 'flex' : 'none';
+  document.getElementById('noCardLink').style.display  = canAssign ? 'block' : 'none';
+  document.getElementById('btnCheckin').style.display  = canAssign ? 'none' : 'inline-flex';
+  document.getElementById('btnCheckin').textContent    = '✅ 受付する';
+}
+
+// 「カードを渡さずに受付」…押し間違い防止のため、確認をはさむ
+function checkinWithoutCard() {
+  const name = (currentVisitor && currentVisitor.name) ? currentVisitor.name + ' 様' : 'この方';
+  const ok = window.confirm(
+    name + 'を、仮カードを渡さずに受付します。\n\n' +
+    '※ カードがないと、ブースでサンプル依頼ができません。\n\n' +
+    'よろしいですか？');
+  if (!ok) return;
+  confirmCheckin();
 }
 
 function showOverlayResult(result) {
