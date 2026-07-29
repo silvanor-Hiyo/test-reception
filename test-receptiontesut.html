@@ -343,6 +343,25 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
       お客様の入場証QRコードをカメラに向けてください
     </div>
 
+    <!-- ===== 仮カードのスキャン待ち（カメラ映像は隠しません） ===== -->
+    <div id="assignBar" style="display:none; background:#92400e; padding:12px 14px;">
+      <div style="color:#ffcf80; font-size:11px; font-weight:700; letter-spacing:2px;">仮カードを渡す</div>
+      <div id="assignBarName" style="color:#fff; font-size:17px; font-weight:700; margin-top:2px;"></div>
+      <div id="assignBarCompany" style="color:rgba(255,255,255,0.75); font-size:12px;"></div>
+      <div style="color:#fff; font-size:13px; font-weight:700; margin:10px 0 8px; text-align:center;">
+        ↑ カードのQRコードをカメラに向けてください
+      </div>
+      <div class="manual-row">
+        <input type="text" class="input-field" id="assignCardInput"
+          placeholder="読めないときはIDを入力（例：V-K7M2PQ）"
+          autocapitalize="characters" autocomplete="off"
+          onkeydown="if(event.key==='Enter') submitAssignCard()">
+        <button class="btn btn-primary" onclick="submitAssignCard()">確定</button>
+      </div>
+      <div id="assignBarError" style="color:#ffd7d7; font-size:12px; font-weight:700; margin-top:8px; display:none;"></div>
+      <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="cancelAssign()">やめる</button>
+    </div>
+
     <div class="overlay" id="overlay">
       <div class="overlay-icon" id="overlayIcon"></div>
       <div class="overlay-name" id="overlayName"></div>
@@ -367,18 +386,6 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
             カードを渡さずに受付する
           </span>
         </div>
-      </div>
-
-      <!-- 仮カードのスキャン待ち -->
-      <div id="overlayAssign" style="display:none; width:100%; margin-top:16px;">
-        <div class="manual-row">
-          <input type="text" class="input-field" id="assignCardInput"
-            placeholder="カードのID（例：V-K7M2PQ）"
-            autocapitalize="characters" autocomplete="off"
-            onkeydown="if(event.key==='Enter') submitAssignCard()">
-          <button class="btn btn-primary" onclick="submitAssignCard()">確定</button>
-        </div>
-        <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="cancelAssign()">やめる</button>
       </div>
 
       <div id="overlayNext" style="display:none; margin-top:16px; width:100%;">
@@ -575,6 +582,9 @@ function startCamera() {
 
 function stopCamera() {
   hideOverlay();
+  hideAssignBar();
+  assignMode = false;
+  assignTarget = null;
   if (html5QrCode && isScanning) {
     html5QrCode.stop().then(() => {
       isScanning = false;
@@ -642,7 +652,6 @@ function onQrSuccess(decodedText) {
 // ============================================================
 function hideAllOverlayBlocks() {
   document.getElementById('overlayActions').style.display = 'none';
-  document.getElementById('overlayAssign').style.display = 'none';
   document.getElementById('overlayNext').style.display = 'none';
   document.getElementById('overlayCardNo').style.display = 'none';
 }
@@ -770,7 +779,7 @@ function beginAssign() {
   assignedCardNo = null;
   document.getElementById('assignCardInput').value = '';
 
-  showOverlayAssign();
+  showAssignBar();
 
   if (isScanning && html5QrCode) {
     try { html5QrCode.resume(); } catch(e) {}
@@ -781,16 +790,22 @@ function beginAssign() {
   }
 }
 
-function showOverlayAssign() {
-  const ov = document.getElementById('overlay');
-  ov.className = 'overlay assign show';
-  document.getElementById('overlayIcon').textContent = '🎫';
-  document.getElementById('overlayName').textContent = (assignTarget.name || '') + ' 様';
-  document.getElementById('overlayCompany').textContent = assignTarget.company || '';
-  document.getElementById('overlayMessage').textContent = '仮カードのQRコードをスキャンしてください';
-  document.getElementById('overlayTime').textContent = '読み取れないときは、カードのIDを入力してください';
-  hideAllOverlayBlocks();
-  document.getElementById('overlayAssign').style.display = 'block';
+// ★ カメラ映像を隠さずに、下の帯で案内する
+function showAssignBar(errorMessage) {
+  hideOverlay();                                   // オレンジの画面を消してカメラを見せる
+  document.getElementById('cameraGuide').style.display = 'none';
+  document.getElementById('assignBar').style.display = 'block';
+  document.getElementById('assignBarName').textContent = (assignTarget.name || '') + ' 様';
+  document.getElementById('assignBarCompany').textContent = assignTarget.company || '';
+
+  const err = document.getElementById('assignBarError');
+  if (errorMessage) { err.textContent = errorMessage; err.style.display = 'block'; }
+  else              { err.textContent = ''; err.style.display = 'none'; }
+}
+
+function hideAssignBar() {
+  document.getElementById('assignBar').style.display = 'none';
+  document.getElementById('cameraGuide').style.display = 'block';
 }
 
 function submitAssignCard() {
@@ -802,6 +817,7 @@ function submitAssignCard() {
 function cancelAssign() {
   assignMode = false;
   assignTarget = null;
+  hideAssignBar();
   if (currentVisitor) {
     scanPaused = true;
     if (html5QrCode && isScanning) { try { html5QrCode.pause(true); } catch(e) {} }
@@ -824,6 +840,7 @@ function handleCardScan(cardId) {
   scanPaused = true;
   if (html5QrCode && isScanning) { try { html5QrCode.pause(true); } catch(e) {} }
   setStatus('paused', '確認中...');
+  hideAssignBar();
   showOverlayLoading();
 
   const url = withKey(GAS_URL + '?action=assignCard'
@@ -836,8 +853,7 @@ function handleCardScan(cardId) {
       if (!data.success) {
         // 失敗しても、もう一度カードを読み直せるように戻す
         assignMode = true;
-        showOverlayAssign();
-        document.getElementById('overlayMessage').textContent = data.message || data.error || '割り当てできませんでした';
+        showAssignBar(data.message || data.error || '割り当てできませんでした');
         if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} scanPaused = false; }
         setStatus('assign', '仮カードをスキャン');
         playSound(false);
@@ -849,8 +865,7 @@ function handleCardScan(cardId) {
     })
     .catch(() => {
       assignMode = true;
-      showOverlayAssign();
-      document.getElementById('overlayMessage').textContent = '通信エラー。もう一度スキャンしてください';
+      showAssignBar('通信エラー。もう一度スキャンしてください');
       if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} scanPaused = false; }
       setStatus('assign', '仮カードをスキャン');
     });
@@ -887,6 +902,7 @@ function cancelCheckin() {
 
 function resetScan() {
   hideOverlay();
+  hideAssignBar();
   lastScannedId = null;
   scanCooldown = false;
   scanPaused = false;
