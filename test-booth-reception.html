@@ -90,7 +90,7 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .camera-status.scanning { color: #4caf50; background: rgba(76,175,80,0.15); }
 .camera-status.paused { color: var(--gold-light); background: rgba(200,168,75,0.15); }
 
-#qr-reader { width: 100%; background: #000; min-height: 240px; }
+#qr-reader { width: 100%; background: #000; }
 #qr-reader video { width: 100% !important; max-height: 300px; object-fit: cover; }
 #qr-reader__scan_region { background: transparent !important; }
 #qr-reader__scan_region img { display: none !important; }
@@ -210,17 +210,14 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .product-item.selected .product-check { background: var(--gold); border-color: var(--gold); }
 .product-item-name { font-size: 15px; color: var(--text); line-height: 1.4; }
 
-/* 商品ごとの数量（選択中だけ表示される − 数 ＋） */
-.product-qty { display: none; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
-.product-qty.show { display: flex; }
-.product-qty .btn-qty { width: 30px; height: 30px; font-size: 16px; }
-.product-qty .qty-num { min-width: 22px; font-size: 15px; }
-
 /* アラート */
 .alert { padding: 12px 16px; border-radius: 8px; margin-top: 12px; font-size: 14px; display: none; }
 .alert.show { display: block; }
 .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #a8ddb8; }
 .alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
+.alert-sending { background: #fff8e1; color: #92400e; border: 1px solid #f0c674; font-weight: 700; }
+.btn-spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.35);
+  border-top-color:#fff; border-radius:50%; animation: spin 0.8s linear infinite; vertical-align:-2px; }
 
 /* サンプルテーブル */
 .table-wrap { overflow-x: auto; margin: 8px -4px; }
@@ -299,9 +296,9 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
 <body>
 
 <div class="header">
-  <div class="header-event" id="headerEvent">EIWA BUSSAN FOOD EXHIBITION 2026</div>
+  <div class="header-event">EIWA BUSSAN FOOD EXHIBITION 2026</div>
   <h1>ブース受付システム</h1>
-  <div class="header-booth" id="headerBoothName">読み込み中...</div>
+  <div class="header-booth" id="headerBoothName">読み込んでいます…</div>
   <button class="btn-logout" id="logoutBtn" style="display:none;" onclick="boothLogout()">ログアウト</button>
 </div>
 
@@ -309,7 +306,7 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
 <div id="errorScreen" class="error-screen" style="display:none;">
   <div class="icon">🔒</div>
   <h2>アクセスできません</h2>
-  <p id="errorScreenMsg">URLが正しくないか、有効期限が切れています。<br>永和物産の担当者にお問い合わせください。</p>
+  <p>URLが正しくないか、有効期限が切れています。<br>永和物産の担当者にお問い合わせください。</p>
 </div>
 
 <!-- パスワード認証画面 -->
@@ -319,11 +316,6 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
     <p class="lock-desc">ブース受付を開始するには、<br>永和物産よりご案内した<br><strong>ブース用パスワード</strong>を入力してください。</p>
     <input type="password" class="input-field" id="boothKeyInput" placeholder="パスワード"
       style="width:100%;" onkeydown="if(event.key==='Enter') submitBoothKey()">
-    <label style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:13px;color:var(--text-light);cursor:pointer;user-select:none;">
-      <input type="checkbox" style="width:16px;height:16px;"
-        onchange="document.getElementById('boothKeyInput').type = this.checked ? 'text' : 'password'">
-      パスワードを表示する
-    </label>
     <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="submitBoothKey()">認証して開始</button>
     <div class="lock-error" id="lockError"></div>
   </div>
@@ -395,7 +387,7 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
     <div class="card">
       <div class="card-title"><span>📦</span>サンプル依頼</div>
       <div class="form-group">
-        <label>商品名（タップで選択、−＋で商品ごとの数量を変更）</label>
+        <label>商品名（タップで複数選択できます）</label>
         <div class="product-toolbar">
           <span class="product-count" id="sr-count">0件選択中</span>
           <span>
@@ -413,8 +405,8 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
         <textarea id="sr-notes" rows="2" placeholder="例：〇〇支店へ発送 / 社内試食用" style="resize:none;"></textarea>
       </div>
       <div class="btn-row">
-        <button class="btn btn-success btn-block" onclick="submitSampleRequest()">📦 サンプル依頼を送信</button>
-        <button class="btn btn-outline-dark" onclick="recordVisitOnly()" style="white-space:nowrap;">訪問のみ</button>
+        <button class="btn btn-success btn-block" id="sampleSubmitBtn" onclick="submitSampleRequest()">📦 サンプル依頼を送信</button>
+        <button class="btn btn-outline-dark" id="visitOnlyBtn" onclick="recordVisitOnly()" style="white-space:nowrap;">訪問のみ</button>
       </div>
       <div class="alert" id="sampleAlert"></div>
     </div>
@@ -448,21 +440,11 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
 
 <script>
 // ============================================================
-// 設定【4分割版】
-// ★ A〜Dそれぞれのアカウントでデプロイした「ウェブアプリURL」を
-//   下の4か所に貼り付けてください（/exec で終わるURL）
+// 設定
 // ============================================================
-const GAS_URLS = {
-  a: 'https://script.google.com/macros/s/AKfycbzPEqHRfKcQ44A8HzyHRK-vn01163xxmvOcVJgb4V6sgokM1xnOUvz2aVbo2duyS4mk/exec',
-  b: 'https://script.google.com/macros/s/AKfycbzCkqCCOiCe5PmB7ypTmdEBjiaJClh6uEFKwyqDMUks7qfwltB3fTcxsEcbBO0OMSR8/exec',
-  c: 'https://script.google.com/macros/s/AKfycbxh4A1SVLQkUDKbdJfKw342rKPXZwNyhQXgc2Amf0D-autHIZg3eNNWx4FDcUFZO8jAEg/exec',
-  d: 'https://script.google.com/macros/s/AKfycbzcv2gMXosTNuhU0g2JhbNw-75fSVSwKbH_abE5GSO2bXZjV4uKpC0hVjgxvPiWkaryew/exec'
-};
-
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8IQaf54k3qVoCGfGcueOZWcMUKiFSWQH1bj3Ic-CB4ZLdIg/exec';
 const urlParams = new URLSearchParams(window.location.search);
-const GROUP = (urlParams.get('g') || '').toLowerCase();   // a / b / c / d
 const TOKEN = urlParams.get('token') || '';
-const GAS_URL = GAS_URLS[GROUP] || '';
 
 // ============================================================
 // ★ ブース用パスワード認証の管理
@@ -471,7 +453,7 @@ const GAS_URL = GAS_URLS[GROUP] || '';
 //  - ヘッダーの「ログアウト」ボタンで手動ログアウト
 // ============================================================
 const BOOTH_IDLE_LIMIT_MS = 30 * 60 * 1000; // 無操作30分で自動ログアウト
-const AUTH_STORE_KEY = 'boothAuth_' + GROUP + '_' + TOKEN;
+const AUTH_STORE_KEY = 'boothAuth_' + TOKEN;
 
 let BOOTH_KEY = '';
 
@@ -526,7 +508,7 @@ function hideBoothLock() {
 async function submitBoothKey() {
   const key = document.getElementById('boothKeyInput').value.trim();
   if (!key) { document.getElementById('lockError').textContent = 'パスワードを入力してください'; return; }
-  document.getElementById('lockError').textContent = '確認中...';
+  document.getElementById('lockError').textContent = '確認しています… 少しお時間をいただきます';
   BOOTH_KEY = key;
   try {
     const result = await apiGet('getBoothByToken', { token: TOKEN });
@@ -556,14 +538,10 @@ let scanCooldown = false;
 // 初期化
 // ============================================================
 async function init() {
-  // グループ（?g=a〜d）とトークンの両方が必要
-  if (!GROUP || !GAS_URL || GAS_URL.indexOf('★') !== -1 || !TOKEN) {
-    showError('URLが正しくありません。<br>メールでご案内したURLをそのままお使いください。<br>解決しない場合は永和物産の担当者にお問い合わせください。');
+  if (!TOKEN) {
+    showError();
     return;
   }
-  document.getElementById('headerEvent').textContent =
-    'EIWA BUSSAN FOOD EXHIBITION 2026　／　GROUP ' + GROUP.toUpperCase();
-
   // 保存済みのパスワードが有効期限内ならそのまま開始、なければ入力を求める
   BOOTH_KEY = loadSavedAuth();
   if (!BOOTH_KEY) {
@@ -597,11 +575,10 @@ async function startBooth(booth) {
   await loadSamples();
 }
 
-function showError(msgHtml) {
+function showError() {
   document.getElementById('errorScreen').style.display = 'block';
   document.getElementById('mainContent').style.display = 'none';
   document.getElementById('headerBoothName').textContent = 'アクセスエラー';
-  if (msgHtml) document.getElementById('errorScreenMsg').innerHTML = msgHtml;
 }
 
 // ============================================================
@@ -609,7 +586,6 @@ function showError(msgHtml) {
 // ブラウザのチェックボックス干渉を避けるため、divボタン＋
 // selectedProductSet（JSオブジェクト）で選択状態を管理する
 // ============================================================
-// selectedProductSet: { 番号: { name: '商品名', qty: 数量 } }
 var selectedProductSet = {};
 
 function setProductOptions(productsStr) {
@@ -620,11 +596,6 @@ function setProductOptions(productsStr) {
     return '<div class="product-item" id="pi-' + i + '" onclick="toggleProduct(' + i + ')">'
       + '<span class="product-check" id="pc-' + i + '"></span>'
       + '<span class="product-item-name"></span>'
-      + '<span class="product-qty" id="pq-' + i + '" onclick="event.stopPropagation()">'
-      + '<button type="button" class="btn-qty" onclick="changeProductQty(' + i + ', -1)">−</button>'
-      + '<span class="qty-num" id="pqn-' + i + '">1</span>'
-      + '<button type="button" class="btn-qty" onclick="changeProductQty(' + i + ', 1)">＋</button>'
-      + '</span>'
       + '</div>';
   }).join('');
   // 商品名はtextContentで入れる（HTML扱いによる崩れを防ぐ）
@@ -640,33 +611,17 @@ function toggleProduct(i) {
   var item = document.getElementById('pi-' + i);
   var name = item.querySelector('.product-item-name').textContent;
   var check = document.getElementById('pc-' + i);
-  var qtyEl = document.getElementById('pq-' + i);
   if (selectedProductSet[i]) {
     delete selectedProductSet[i];
     item.classList.remove('selected');
     if (check) check.textContent = '';
-    if (qtyEl) qtyEl.classList.remove('show');
   } else {
-    selectedProductSet[i] = { name: name, qty: 1 };
+    selectedProductSet[i] = name;
     item.classList.add('selected');
     if (check) check.textContent = '✓';
-    if (qtyEl) {
-      qtyEl.classList.add('show');
-      document.getElementById('pqn-' + i).textContent = '1';
-    }
   }
   updateProductCount();
   updateOtherInput();
-}
-
-// ★ 商品ごとの数量変更（−／＋）
-function changeProductQty(i, delta) {
-  var p = selectedProductSet[i];
-  if (!p) return;
-  var q = p.qty + delta;
-  if (q < 1 || q > 999) return;
-  p.qty = q;
-  document.getElementById('pqn-' + i).textContent = q;
 }
 
 function updateProductCount() {
@@ -677,7 +632,7 @@ function updateProductCount() {
 function updateOtherInput() {
   var otherChecked = false;
   for (var k in selectedProductSet) {
-    if (selectedProductSet[k].name === 'その他') { otherChecked = true; break; }
+    if (selectedProductSet[k] === 'その他') { otherChecked = true; break; }
   }
   document.getElementById('other-input-wrap').style.display = otherChecked ? 'block' : 'none';
   if (!otherChecked) document.getElementById('sr-other-text').value = '';
@@ -687,15 +642,10 @@ function selectAllProducts() {
   var items = document.querySelectorAll('#sr-product-list .product-item');
   items.forEach(function(item, i) {
     var name = item.querySelector('.product-item-name').textContent;
-    if (!selectedProductSet[i]) selectedProductSet[i] = { name: name, qty: 1 };
+    selectedProductSet[i] = name;
     item.classList.add('selected');
     var check = document.getElementById('pc-' + i);
     if (check) check.textContent = '✓';
-    var qtyEl = document.getElementById('pq-' + i);
-    if (qtyEl) {
-      qtyEl.classList.add('show');
-      document.getElementById('pqn-' + i).textContent = selectedProductSet[i].qty;
-    }
   });
   updateProductCount();
   updateOtherInput();
@@ -707,8 +657,6 @@ function clearProducts() {
     item.classList.remove('selected');
     var check = document.getElementById('pc-' + i);
     if (check) check.textContent = '';
-    var qtyEl = document.getElementById('pq-' + i);
-    if (qtyEl) qtyEl.classList.remove('show');
   });
   updateProductCount();
   updateOtherInput();
@@ -831,7 +779,7 @@ function onQrSuccess(decodedText) {
   touchActivity();
   scanPaused = true;
   if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
-  setStatus('paused', '確認中...');
+  setStatus('paused', '確認中…');
 
   showOverlayLoading();
   processVisitor(visitorId);
@@ -839,27 +787,19 @@ function onQrSuccess(decodedText) {
 
 // ============================================================
 // 来場者処理
-// ★「緩める」方式：名簿にない場合もエラーにせず、
-//   「名簿未登録」の確認画面を出して記録できるようにする
-//   （当日登録の方や、マスターコピー後に登録した方に対応）
 // ============================================================
 async function processVisitor(visitorId) {
   currentVisitorId = visitorId;
   try {
     const result = await apiGet('getVisitorInfo', { visitorId: visitorId, token: TOKEN });
-    if (result.unregistered) {
-      currentVisitorData = { name: '（名簿未登録）', company: '', department: '' };
-      showOverlayUnregistered(visitorId);
-    } else {
-      currentVisitorData = result.visitor;
-      showOverlayPreview(result.visitor);
-    }
+    currentVisitorData = result.visitor;
+    showOverlayPreview(result.visitor);
   } catch(e) {
     if (e.code === 'booth_auth' || e.code === 'unauthorized') {
       boothLogout('認証が切れました。パスワードを再入力してください');
       return;
     }
-    showOverlayError('エラーが発生しました', e.message || ('ID: ' + visitorId));
+    showOverlayError('来場者が見つかりません', 'ID: ' + visitorId);
   }
 }
 
@@ -867,23 +807,19 @@ async function confirmVisit() {
   if (!currentVisitorId || !currentVisitorData) return;
   document.getElementById('overlayButtons').style.display = 'none';
   showOverlayLoading();
+  document.getElementById('overlayName').textContent = '記録しています…';
 
   try {
-    const result = await apiPost('boothVisitByToken', {
+    await apiPost('boothVisitByToken', {
       token: TOKEN,
       visitorId: currentVisitorId
     });
     hideOverlay();
 
-    // 来場者パネルを表示（名簿未登録の場合はIDを添えて表示）
-    if (result.unregistered) {
-      document.getElementById('visitorName').textContent = '（名簿未登録）' + currentVisitorId;
-      document.getElementById('visitorCompany').textContent = '展示会後に入口受付と照合されます';
-    } else {
-      document.getElementById('visitorName').textContent = currentVisitorData.name;
-      document.getElementById('visitorCompany').textContent =
-        currentVisitorData.company + (currentVisitorData.department ? '　' + currentVisitorData.department : '');
-    }
+    // 来場者パネルを表示
+    document.getElementById('visitorName').textContent = currentVisitorData.name;
+    document.getElementById('visitorCompany').textContent =
+      currentVisitorData.company + (currentVisitorData.department ? '　' + currentVisitorData.department : '');
     document.getElementById('visitorPanel').style.display = 'block';
     clearProducts();
     document.getElementById('sr-notes').value = '';
@@ -897,7 +833,10 @@ async function confirmVisit() {
     scanPaused = false;
 
   } catch(e) {
-    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+    if (e.code === 'not_checked_in') {
+      // ★ エラーコードではなく、分かりやすい日本語で案内する
+      showOverlayNotCheckedIn(e.message);
+    } else if (e.code === 'booth_auth' || e.code === 'unauthorized') {
       boothLogout('認証が切れました。パスワードを再入力してください');
     } else {
       showOverlayError('エラーが発生しました', e.message);
@@ -937,7 +876,7 @@ function manualProcess() {
     document.getElementById('cameraWrap').classList.add('active');
   } else {
     if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
-    setStatus('paused', '確認中...');
+    setStatus('paused', '確認中…');
   }
 
   showOverlayLoading();
@@ -953,9 +892,12 @@ async function submitSampleRequest() {
   var selectedProducts = [];
   var otherText = document.getElementById('sr-other-text').value.trim();
   for (var k in selectedProductSet) {
-    var p = selectedProductSet[k];
-    var nm = (p.name === 'その他') ? (otherText ? 'その他：' + otherText : 'その他') : p.name;
-    selectedProducts.push({ name: nm, qty: p.qty });
+    var val = selectedProductSet[k];
+    if (val === 'その他') {
+      selectedProducts.push(otherText ? 'その他：' + otherText : 'その他');
+    } else {
+      selectedProducts.push(val);
+    }
   }
 
   if (selectedProducts.length === 0) {
@@ -963,19 +905,21 @@ async function submitSampleRequest() {
     return;
   }
 
+  // ★ 押したことが分かるように、ボタンを「送信中」に変える（二重送信も防ぐ）
+  setSampleSending(true);
+  showAlert('sending', '📤 送信中です… 処理に時間がかかります。そのままお待ちください');
+
   try {
-    // ★ 商品ごとに1件ずつ送信（それぞれの数量つき）
-    // 一覧にも商品ごとに1行ずつ並ぶので、あとから商品単位で修正・取消できる
-    for (var idx = 0; idx < selectedProducts.length; idx++) {
-      await apiPost('sampleRequestByToken', {
-        token: TOKEN,
-        visitorId: currentVisitorId,
-        product_name: selectedProducts[idx].name,
-        quantity: selectedProducts[idx].qty,
-        notes: document.getElementById('sr-notes').value
-      });
-    }
-    showAlert('success', '✅ サンプル依頼を送信しました！（' + selectedProducts.length + '商品）');
+    // 選んだ商品を「、」区切りでまとめて1件として送信（数量＝選択した商品数）
+    await apiPost('sampleRequestByToken', {
+      token: TOKEN,
+      visitorId: currentVisitorId,
+      product_name: selectedProducts.join('、'),
+      quantity: selectedProducts.length,
+      notes: document.getElementById('sr-notes').value
+    });
+    setSampleSending(false);
+    showAlert('success', '✅ サンプル依頼を送信しました！');
     playBeep(800);
     currentVisitorId = null;
     currentVisitorData = null;
@@ -984,12 +928,28 @@ async function submitSampleRequest() {
       loadSamples();
     }, 2000);
   } catch(e) {
-    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+    setSampleSending(false);
+    if (e.code === 'not_checked_in') {
+      showAlert('error', e.message);
+    } else if (e.code === 'booth_auth' || e.code === 'unauthorized') {
       boothLogout('認証が切れました。パスワードを再入力してください');
     } else {
       showAlert('error', 'エラー: ' + e.message);
     }
   }
+}
+
+// ★ 送信中かどうかで、ボタンの見た目を切り替える
+function setSampleSending(sending) {
+  const btn   = document.getElementById('sampleSubmitBtn');
+  const visit = document.getElementById('visitOnlyBtn');
+  if (!btn) return;
+  btn.disabled = sending;
+  if (visit) visit.disabled = sending;
+  btn.innerHTML = sending
+    ? '<span class="btn-spinner"></span>　送信中です… お待ちください'
+    : '📦 サンプル依頼を送信';
+  btn.style.opacity = sending ? '0.7' : '';
 }
 
 async function recordVisitOnly() {
@@ -1108,9 +1068,9 @@ function showOverlayLoading() {
   const ov = document.getElementById('overlay');
   ov.className = 'overlay loading show';
   document.getElementById('overlayIcon').innerHTML = '<div class="spinner"></div>';
-  document.getElementById('overlayName').textContent = '確認中...';
+  document.getElementById('overlayName').textContent = '確認しています…';
   document.getElementById('overlayCompany').textContent = '';
-  document.getElementById('overlayMessage').textContent = 'しばらくお待ちください';
+  document.getElementById('overlayMessage').textContent = '処理に時間がかかります。そのままお待ちください';
   document.getElementById('overlayTime').textContent = '';
   document.getElementById('overlayButtons').style.display = 'none';
   document.getElementById('overlayNext').style.display = 'none';
@@ -1128,20 +1088,18 @@ function showOverlayPreview(v) {
   document.getElementById('overlayNext').style.display = 'none';
 }
 
-// ★ 名簿未登録の来場者の確認画面（緩める方式）
-// 当日登録の方や、名簿コピー後に登録した方の可能性があるため、
-// エラーにせず「このまま記録する」ことができる
-function showOverlayUnregistered(visitorId) {
+// ★ 入口未受付の来場者向けの案内表示（エラーコードは見せない）
+function showOverlayNotCheckedIn(message) {
   const ov = document.getElementById('overlay');
   ov.className = 'overlay warning show';
-  document.getElementById('overlayIcon').textContent = '❓';
-  document.getElementById('overlayName').textContent = '名簿に見つかりません';
-  document.getElementById('overlayCompany').textContent = 'ID: ' + visitorId;
-  document.getElementById('overlayMessage').textContent =
-    '当日登録の方の可能性があります。このまま「記録する」を押しても大丈夫です（展示会後に照合されます）。';
+  document.getElementById('overlayIcon').textContent = '🙏';
+  document.getElementById('overlayName').textContent = '入口受付がお済みでないようです';
+  document.getElementById('overlayCompany').textContent = '';
+  document.getElementById('overlayMessage').textContent = message ||
+    'この来場者様は、まだ入口での受付が完了していません。入口受付にご案内いただき、受付後にもう一度QRコードを読み取ってください。';
   document.getElementById('overlayTime').textContent = '';
-  document.getElementById('overlayButtons').style.display = 'flex';
-  document.getElementById('overlayNext').style.display = 'none';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'block';
 }
 
 function showOverlayError(title, sub) {
