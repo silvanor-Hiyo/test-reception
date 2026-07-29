@@ -128,6 +128,7 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
 }
 .camera-status.scanning { color: #4caf50; background: rgba(76,175,80,0.15); }
 .camera-status.paused { color: var(--gold-light); background: rgba(200,168,75,0.15); }
+.camera-status.assign { color: #ffcf80; background: rgba(180,83,9,0.3); }
 
 #qr-reader { width: 100%; background: #000; }
 #qr-reader video { width: 100% !important; max-height: 300px; object-fit: cover; }
@@ -152,6 +153,7 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
   padding: 20px;
   z-index: 10;
   animation: fadeIn 0.3s ease;
+  overflow-y: auto;
 }
 .overlay.show { display: flex; }
 .overlay.preview { background: rgba(13,31,92,0.92); }
@@ -159,6 +161,7 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
 .overlay.duplicate { background: rgba(146,64,14,0.93); }
 .overlay.error { background: rgba(139,26,26,0.93); }
 .overlay.loading { background: rgba(13,31,92,0.85); }
+.overlay.assign { background: rgba(146,64,14,0.94); }
 
 @keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
 
@@ -166,12 +169,21 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
 .overlay-name { font-size: 24px; font-weight: 700; color: white; margin-bottom: 6px; text-align: center; }
 .overlay-company { font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 8px; text-align: center; line-height: 1.5; }
 .overlay-message { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); text-align: center; }
-.overlay-time { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 6px; }
+.overlay-time { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 6px; text-align: center; }
 
 .overlay-buttons {
-  display: flex; gap: 10px; margin-top: 20px; width: 100%;
+  display: flex; gap: 10px; width: 100%;
 }
 .overlay-buttons .btn { flex: 1; }
+
+/* ===== カード番号バッジ ===== */
+.card-no-badge {
+  display: inline-block; margin-top: 10px;
+  background: rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.5);
+  color: white; font-size: 15px; font-weight: 700;
+  padding: 5px 16px; border-radius: 20px; letter-spacing: 1px;
+}
 
 /* ===== カメラ起動ボタン ===== */
 .btn-camera-start {
@@ -213,7 +225,7 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
   flex: 1; padding: 12px 14px; border: 1.5px solid var(--border);
   border-radius: 10px; font-size: 15px; font-family: inherit;
   color: var(--text); outline: none; transition: border-color 0.2s;
-  -webkit-appearance: none;
+  -webkit-appearance: none; background: white;
 }
 .input-field:focus { border-color: var(--navy-mid); }
 .input-field::placeholder { color: #bbb8d0; font-size: 13px; }
@@ -337,10 +349,32 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
       <div class="overlay-company" id="overlayCompany"></div>
       <div class="overlay-message" id="overlayMessage"></div>
       <div class="overlay-time" id="overlayTime"></div>
-      <div class="overlay-buttons" id="overlayButtons" style="display:none;">
-        <button class="btn btn-danger" onclick="cancelCheckin()">❌ キャンセル</button>
-        <button class="btn btn-primary" onclick="confirmCheckin()">✅ 受付する</button>
+      <div id="overlayCardNo" style="display:none;"></div>
+
+      <!-- 受付するかどうかのボタン -->
+      <div id="overlayActions" style="display:none; width:100%; margin-top:18px;">
+        <button class="btn btn-success btn-block" id="btnAssign"
+          style="display:none; margin-bottom:10px;" onclick="beginAssign()">
+          🎫 仮カードを渡して受付
+        </button>
+        <div class="overlay-buttons">
+          <button class="btn btn-danger" onclick="cancelCheckin()">❌ キャンセル</button>
+          <button class="btn btn-primary" id="btnCheckin" onclick="confirmCheckin()">✅ 受付する</button>
+        </div>
       </div>
+
+      <!-- 仮カードのスキャン待ち -->
+      <div id="overlayAssign" style="display:none; width:100%; margin-top:16px;">
+        <div class="manual-row">
+          <input type="text" class="input-field" id="assignCardInput"
+            placeholder="カードのID（例：V-K7M2PQ）"
+            autocapitalize="characters" autocomplete="off"
+            onkeydown="if(event.key==='Enter') submitAssignCard()">
+          <button class="btn btn-primary" onclick="submitAssignCard()">確定</button>
+        </div>
+        <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="cancelAssign()">やめる</button>
+      </div>
+
       <div id="overlayNext" style="display:none; margin-top:16px; width:100%;">
         <button class="btn btn-outline btn-block" onclick="resetScan()">次の受付へ →</button>
       </div>
@@ -358,7 +392,8 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
     <div class="card-title"><span>🔍</span>名前検索（QRを忘れた場合）</div>
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">
       お名前・会社名・来場者ID のどれでも検索できます<br>
-      （IDは「V-」やハイフンを省略してもOK。例：ABC123）
+      （IDは「V-」やハイフンを省略してもOK。例：ABC123）<br>
+      見つかったら、そのまま<strong>仮カードを渡して受付</strong>できます
     </p>
     <div class="manual-row">
       <input type="text" class="input-field" id="manualId"
@@ -492,6 +527,12 @@ let lastScannedId = null;
 let scanCooldown = false;
 let lastScanMethod = 'QR'; // 'QR' または '検索'
 
+// ★ 仮カード割り当て用
+let currentVisitor = null;   // いま画面に出ている来場者
+let assignMode     = false;  // true のあいだは「次に読むQR＝仮カード」
+let assignTarget   = null;   // 仮カードを渡す相手
+let assignedCardNo = null;   // 割り当てたカード番号（表示用）
+
 // ============================================================
 // カメラ起動・停止
 // ============================================================
@@ -517,7 +558,8 @@ function startCamera() {
   ).then(() => {
     isScanning = true;
     scanPaused = false;
-    setStatus('scanning', 'スキャン待機中');
+    if (assignMode) setStatus('assign', '仮カードをスキャン');
+    else            setStatus('scanning', 'スキャン待機中');
   }).catch(err => {
     showToast('カメラの起動に失敗しました');
     document.getElementById('startBtn').style.display = 'flex';
@@ -547,7 +589,7 @@ function setStatus(type, text) {
 // QRスキャン成功
 // ============================================================
 function onQrSuccess(decodedText) {
-  if (scanCooldown || scanPaused) return;
+  if (scanCooldown) return;
   scanCooldown = true;
   setTimeout(() => { scanCooldown = false; }, 3000);
 
@@ -562,6 +604,12 @@ function onQrSuccess(decodedText) {
   if (!visitorId) { showToast('QRコードを認識できませんでした'); return; }
 
   touchActivity();
+
+  // ★ 仮カードのスキャン待ちなら、そちらの処理へ
+  if (assignMode) { handleCardScan(visitorId); return; }
+
+  if (scanPaused) return;
+
   lastScanMethod = 'QR';
   scanPaused = true;
   if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
@@ -586,6 +634,13 @@ function onQrSuccess(decodedText) {
 // ============================================================
 // オーバーレイ表示
 // ============================================================
+function hideAllOverlayBlocks() {
+  document.getElementById('overlayActions').style.display = 'none';
+  document.getElementById('overlayAssign').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'none';
+  document.getElementById('overlayCardNo').style.display = 'none';
+}
+
 function showOverlayLoading() {
   const ov = document.getElementById('overlay');
   ov.className = 'overlay loading show';
@@ -594,11 +649,11 @@ function showOverlayLoading() {
   document.getElementById('overlayCompany').textContent = '';
   document.getElementById('overlayMessage').textContent = 'しばらくお待ちください';
   document.getElementById('overlayTime').textContent = '';
-  document.getElementById('overlayButtons').style.display = 'none';
-  document.getElementById('overlayNext').style.display = 'none';
+  hideAllOverlayBlocks();
 }
 
 function showOverlayPreview(v) {
+  currentVisitor = v;
   const ov = document.getElementById('overlay');
   ov.className = 'overlay preview show';
   document.getElementById('overlayIcon').textContent = '👤';
@@ -607,13 +662,21 @@ function showOverlayPreview(v) {
     v.company + (v.department ? '　' + v.department : '');
   document.getElementById('overlayMessage').textContent = 'この方を受付しますか？';
   document.getElementById('overlayTime').textContent = 'ID: ' + lastScannedId;
-  document.getElementById('overlayButtons').style.display = 'flex';
-  document.getElementById('overlayNext').style.display = 'none';
+  hideAllOverlayBlocks();
+  document.getElementById('overlayActions').style.display = 'block';
+
+  // ★ 名前検索で見つけた方（＝QRを忘れた方）だけ、仮カードを渡すボタンを出す
+  //   すでに仮カードそのものをスキャンした場合は出さない
+  const isTempCard = String(v.company || '').indexOf('当日受付') >= 0;
+  const canAssign  = (lastScanMethod === '検索') && !isTempCard;
+
+  document.getElementById('btnAssign').style.display = canAssign ? 'flex' : 'none';
+  document.getElementById('btnCheckin').textContent  = canAssign ? 'カードなしで受付' : '✅ 受付する';
 }
 
 function showOverlayResult(result) {
   const ov = document.getElementById('overlay');
-  document.getElementById('overlayButtons').style.display = 'none';
+  hideAllOverlayBlocks();
   document.getElementById('overlayNext').style.display = 'block';
 
   if (!result.success) {
@@ -633,6 +696,13 @@ function showOverlayResult(result) {
     v.company + (v.department ? '　' + v.department : '');
   document.getElementById('overlayTime').textContent =
     '受付時刻：' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+
+  // ★ 仮カードを渡した場合は、カード番号を大きく出す（渡し間違い防止）
+  const cardBox = document.getElementById('overlayCardNo');
+  if (assignedCardNo) {
+    cardBox.innerHTML = '<span class="card-no-badge">🎫 カード No.' + escapeHtml(assignedCardNo) + ' をお渡しください</span>';
+    cardBox.style.display = 'block';
+  }
 
   if (result.duplicate) {
     ov.className = 'overlay duplicate show';
@@ -655,14 +725,114 @@ function showOverlayError(title, sub) {
   document.getElementById('overlayCompany').textContent = sub;
   document.getElementById('overlayMessage').textContent = '';
   document.getElementById('overlayTime').textContent = '';
-  document.getElementById('overlayButtons').style.display = 'none';
+  hideAllOverlayBlocks();
   document.getElementById('overlayNext').style.display = 'block';
 }
 
 function hideOverlay() {
   document.getElementById('overlay').className = 'overlay';
-  document.getElementById('overlayButtons').style.display = 'none';
-  document.getElementById('overlayNext').style.display = 'none';
+  hideAllOverlayBlocks();
+}
+
+// ============================================================
+// ★ 仮カードの割り当て
+//   ①「仮カードを渡して受付」を押す
+//   ② カードのQRをスキャン（読めなければIDを手入力）
+//   ③ 割り当て → そのまま受付完了
+// ============================================================
+function beginAssign() {
+  if (!currentVisitor) return;
+  touchActivity();
+
+  assignTarget = currentVisitor;
+  assignMode = true;
+  assignedCardNo = null;
+  document.getElementById('assignCardInput').value = '';
+
+  showOverlayAssign();
+
+  if (isScanning && html5QrCode) {
+    try { html5QrCode.resume(); } catch(e) {}
+    scanPaused = false;
+    setStatus('assign', '仮カードをスキャン');
+  } else {
+    startCamera();
+  }
+}
+
+function showOverlayAssign() {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay assign show';
+  document.getElementById('overlayIcon').textContent = '🎫';
+  document.getElementById('overlayName').textContent = (assignTarget.name || '') + ' 様';
+  document.getElementById('overlayCompany').textContent = assignTarget.company || '';
+  document.getElementById('overlayMessage').textContent = '仮カードのQRコードをスキャンしてください';
+  document.getElementById('overlayTime').textContent = '読み取れないときは、カードのIDを入力してください';
+  hideAllOverlayBlocks();
+  document.getElementById('overlayAssign').style.display = 'block';
+}
+
+function submitAssignCard() {
+  const val = document.getElementById('assignCardInput').value.trim().toUpperCase();
+  if (!val) { showToast('カードのIDを入力してください'); return; }
+  handleCardScan(val);
+}
+
+function cancelAssign() {
+  assignMode = false;
+  assignTarget = null;
+  if (currentVisitor) {
+    scanPaused = true;
+    if (html5QrCode && isScanning) { try { html5QrCode.pause(true); } catch(e) {} }
+    setStatus('paused', '確認中...');
+    showOverlayPreview(currentVisitor);
+  } else {
+    resetScan();
+  }
+}
+
+function handleCardScan(cardId) {
+  if (!assignTarget) { resetScan(); return; }
+
+  if (cardId === assignTarget.id) {
+    showToast('同じQRです。仮カードのQRをスキャンしてください');
+    return;
+  }
+
+  assignMode = false;
+  scanPaused = true;
+  if (html5QrCode && isScanning) { try { html5QrCode.pause(true); } catch(e) {} }
+  setStatus('paused', '確認中...');
+  showOverlayLoading();
+
+  const url = withKey(GAS_URL + '?action=assignCard'
+    + '&visitorId=' + encodeURIComponent(assignTarget.id)
+    + '&cardId='    + encodeURIComponent(cardId))
+    + '&operator='  + encodeURIComponent(OPERATOR);
+
+  fetchJsonWithRetry(url)
+    .then(data => {
+      if (!data.success) {
+        // 失敗しても、もう一度カードを読み直せるように戻す
+        assignMode = true;
+        showOverlayAssign();
+        document.getElementById('overlayMessage').textContent = data.message || data.error || '割り当てできませんでした';
+        if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} scanPaused = false; }
+        setStatus('assign', '仮カードをスキャン');
+        playSound(false);
+        return;
+      }
+      assignedCardNo = data.cardNo;
+      lastScannedId  = assignTarget.id;   // 受付は「本人のID」で記録する
+      confirmCheckin();
+    })
+    .catch(() => {
+      assignMode = true;
+      showOverlayAssign();
+      document.getElementById('overlayMessage').textContent = '通信エラー。もう一度スキャンしてください';
+      if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} scanPaused = false; }
+      setStatus('assign', '仮カードをスキャン');
+    });
 }
 
 // ============================================================
@@ -671,12 +841,12 @@ function hideOverlay() {
 function confirmCheckin() {
   if (!lastScannedId) return;
   touchActivity();
-  document.getElementById('overlayButtons').style.display = 'none';
+  hideAllOverlayBlocks();
   showOverlayLoading();
 
   // ★ 受付方法（QR/検索）と担当者名も一緒に記録する
   const url = withKey(GAS_URL + '?action=checkin&visitorId=' + encodeURIComponent(lastScannedId))
-    + '&method=' + encodeURIComponent(lastScanMethod)
+    + '&method=' + encodeURIComponent(assignedCardNo ? '検索＋仮カード' : lastScanMethod)
     + '&operator=' + encodeURIComponent(OPERATOR);
 
   fetchJsonWithRetry(url)
@@ -699,6 +869,11 @@ function resetScan() {
   lastScannedId = null;
   scanCooldown = false;
   scanPaused = false;
+
+  currentVisitor = null;
+  assignMode = false;
+  assignTarget = null;
+  assignedCardNo = null;
 
   if (html5QrCode && isScanning) {
     try { html5QrCode.resume(); } catch(e) {}
@@ -766,6 +941,8 @@ function startManualFlow(id) {
   lastScannedId = id;
   lastScanMethod = '検索';
   scanPaused = true;
+  assignMode = false;
+  assignedCardNo = null;
 
   if (isScanning) {
     if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
