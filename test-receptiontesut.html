@@ -629,7 +629,7 @@ function onQrSuccess(decodedText) {
   lastScanMethod = 'QR';
   scanPaused = true;
   if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
-  setStatus('paused', '確認中...');
+  setStatus('paused', '確認中…');
 
   showOverlayLoading();
   lastScannedId = visitorId;
@@ -660,9 +660,9 @@ function showOverlayLoading() {
   const ov = document.getElementById('overlay');
   ov.className = 'overlay loading show';
   document.getElementById('overlayIcon').innerHTML = '<div class="spinner"></div>';
-  document.getElementById('overlayName').textContent = '確認中...';
+  document.getElementById('overlayName').textContent = '確認しています…';
   document.getElementById('overlayCompany').textContent = '';
-  document.getElementById('overlayMessage').textContent = 'しばらくお待ちください';
+  document.getElementById('overlayMessage').textContent = '処理に時間がかかります。そのままお待ちください';
   document.getElementById('overlayTime').textContent = '';
   hideAllOverlayBlocks();
 }
@@ -851,7 +851,7 @@ function cancelAssign() {
   if (currentVisitor) {
     scanPaused = true;
     if (html5QrCode && isScanning) { try { html5QrCode.pause(true); } catch(e) {} }
-    setStatus('paused', '確認中...');
+    setStatus('paused', '確認中…');
     showOverlayPreview(currentVisitor);
   } else {
     resetScan();
@@ -869,7 +869,7 @@ function handleCardScan(cardId) {
   assignMode = false;
   scanPaused = true;
   if (html5QrCode && isScanning) { try { html5QrCode.pause(true); } catch(e) {} }
-  setStatus('paused', '確認中...');
+  setStatus('paused', '確認中…');
   hideAssignBar();
   showOverlayLoading();
 
@@ -970,7 +970,7 @@ function manualCheckin() {
 
   // それ以外は名前・会社名・ID（表記ゆらぎOK）で検索して候補を表示
   const box = document.getElementById('searchResults');
-  box.innerHTML = '<div class="search-hint">検索中...</div>';
+  box.innerHTML = '<div class="search-hint">検索しています… 少しお時間をいただきます</div>';
   fetchJsonWithRetry(withKey(GAS_URL + '?action=searchVisitors&q=' + encodeURIComponent(q)))
     .then(data => {
       if (!data.success) {
@@ -1013,7 +1013,7 @@ function startManualFlow(id) {
 
   if (isScanning) {
     if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
-    setStatus('paused', '確認中...');
+    setStatus('paused', '確認中…');
     showOverlayLoading();
     document.getElementById('cameraGuide').style.display = 'none';
   } else {
@@ -1101,7 +1101,7 @@ function submitStaffKey() {
   if (!op)  { document.getElementById('lockError').textContent = '担当者名（または端末名）を入力してください'; return; }
   STAFF_KEY = key;
   OPERATOR  = op;
-  document.getElementById('lockError').textContent = '確認中...';
+  document.getElementById('lockError').textContent = '確認しています… 少しお時間をいただきます';
   fetchJsonWithRetry(withKey(GAS_URL + '?action=getCheckins'))
     .then(data => {
       if (data.success) {
