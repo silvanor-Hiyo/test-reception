@@ -366,6 +366,22 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
       <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="cancelAssign()">やめる</button>
     </div>
 
+    <!-- ===== ★ 仮カードの確認（間違えて読んだときに戻れる） ===== -->
+    <div id="assignConfirmBar" style="display:none; background:#14532d; padding:12px 14px;">
+      <div style="color:#a7f3d0; font-size:11px; font-weight:700; letter-spacing:2px;">このカードでよろしいですか？</div>
+      <div id="confirmVisitorName" style="color:#fff; font-size:17px; font-weight:700; margin-top:2px;"></div>
+      <div id="confirmVisitorCompany" style="color:rgba(255,255,255,0.75); font-size:12px;"></div>
+      <div style="background:rgba(255,255,255,0.14); border-radius:10px; padding:10px; margin:10px 0; text-align:center;">
+        <div style="color:#a7f3d0; font-size:11px; font-weight:700;">読み取った仮カード</div>
+        <div id="confirmCardId" style="color:#fff; font-size:22px; font-weight:800; font-family:monospace; letter-spacing:1px; margin-top:4px; word-break:break-all;"></div>
+      </div>
+      <div class="overlay-buttons">
+        <button class="btn btn-danger" onclick="cancelAssignConfirm()">↩️ 読み直す</button>
+        <button class="btn btn-primary" onclick="confirmAssignCard()">✅ このカードで受付</button>
+      </div>
+      <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="cancelAssign()">受付をやめる</button>
+    </div>
+
     <div class="overlay" id="overlay">
       <div class="overlay-icon" id="overlayIcon"></div>
       <div class="overlay-name" id="overlayName"></div>
@@ -549,6 +565,7 @@ let currentVisitor = null;   // いま画面に出ている来場者
 let assignMode     = false;  // true のあいだは「次に読むQR＝仮カード」
 let assignTarget   = null;   // 仮カードを渡す相手
 let assignedCardNo = null;   // 割り当てたカード番号（表示用）
+let pendingCardId  = null;   // ★ 確認待ちの仮カードID（まだ登録していない）
 
 // ============================================================
 // カメラ起動・停止
@@ -587,8 +604,10 @@ function startCamera() {
 function stopCamera() {
   hideOverlay();
   hideAssignBar();
+  hideAssignConfirmBar();
   assignMode = false;
   assignTarget = null;
+  pendingCardId = null;
   if (html5QrCode && isScanning) {
     html5QrCode.stop().then(() => {
       isScanning = false;
@@ -851,7 +870,9 @@ function submitAssignCard() {
 function cancelAssign() {
   assignMode = false;
   assignTarget = null;
+  pendingCardId = null;
   hideAssignBar();
+  hideAssignConfirmBar();
   if (currentVisitor) {
     scanPaused = true;
     if (html5QrCode && isScanning) { try { html5QrCode.pause(true); } catch(e) {} }
@@ -870,11 +891,52 @@ function handleCardScan(cardId) {
     return;
   }
 
+  // ★ すぐに登録せず、まず確認画面を出す（間違えて読んだときに戻れる）
+  pendingCardId = cardId;
   assignMode = false;
   scanPaused = true;
   if (html5QrCode && isScanning) { try { html5QrCode.pause(true); } catch(e) {} }
-  setStatus('paused', '確認中…');
+  setStatus('paused', 'カードを確認してください');
   hideAssignBar();
+  showAssignConfirmBar(cardId);
+}
+
+// ★ 読み取った仮カードを確認する帯を出す
+function showAssignConfirmBar(cardId) {
+  hideOverlay();
+  document.getElementById('cameraGuide').style.display = 'none';
+  document.getElementById('assignBar').style.display = 'none';
+  document.getElementById('assignConfirmBar').style.display = 'block';
+  document.getElementById('confirmVisitorName').textContent    = (assignTarget.name || '') + ' 様';
+  document.getElementById('confirmVisitorCompany').textContent = assignTarget.company || '';
+  document.getElementById('confirmCardId').textContent         = cardId;
+}
+
+function hideAssignConfirmBar() {
+  document.getElementById('assignConfirmBar').style.display = 'none';
+}
+
+// ★「読み直す」＝ 登録せずに仮カードのスキャンへ戻る
+function cancelAssignConfirm() {
+  touchActivity();
+  pendingCardId = null;
+  hideAssignConfirmBar();
+  document.getElementById('assignCardInput').value = '';
+  assignMode = true;
+  showAssignBar('読み直します。正しい仮カードのQRをカメラに向けてください');
+  if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} scanPaused = false; }
+  setStatus('assign', '仮カードをスキャン');
+}
+
+// ★「このカードで受付」＝ ここで初めてサーバーに登録する
+function confirmAssignCard() {
+  if (!pendingCardId) return;
+  touchActivity();
+  hideAssignConfirmBar();
+  doAssignCard(pendingCardId);
+}
+
+function doAssignCard(cardId) {
   showOverlayLoading();
 
   const url = withKey(GAS_URL + '?action=assignCard'
@@ -886,6 +948,7 @@ function handleCardScan(cardId) {
     .then(data => {
       if (!data.success) {
         // 失敗しても、もう一度カードを読み直せるように戻す
+        pendingCardId = null;
         assignMode = true;
         showAssignBar(data.message || data.error || '割り当てできませんでした');
         if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} scanPaused = false; }
@@ -893,11 +956,13 @@ function handleCardScan(cardId) {
         playSound(false);
         return;
       }
+      pendingCardId  = null;
       assignedCardNo = data.cardNo;
       lastScannedId  = assignTarget.id;   // 受付は「本人のID」で記録する
       confirmCheckin();
     })
     .catch(() => {
+      pendingCardId = null;
       assignMode = true;
       showAssignBar('通信エラー。もう一度スキャンしてください');
       if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} scanPaused = false; }
@@ -937,6 +1002,7 @@ function cancelCheckin() {
 function resetScan() {
   hideOverlay();
   hideAssignBar();
+  hideAssignConfirmBar();
   lastScannedId = null;
   scanCooldown = false;
   scanPaused = false;
@@ -945,6 +1011,7 @@ function resetScan() {
   assignMode = false;
   assignTarget = null;
   assignedCardNo = null;
+  pendingCardId = null;
 
   if (html5QrCode && isScanning) {
     try { html5QrCode.resume(); } catch(e) {}
