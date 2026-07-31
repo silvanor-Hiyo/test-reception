@@ -168,7 +168,7 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px; }
 .overlay-icon { font-size: 52px; margin-bottom: 10px; }
 .overlay-name { font-size: 24px; font-weight: 700; color: white; margin-bottom: 6px; text-align: center; }
 .overlay-company { font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 8px; text-align: center; line-height: 1.5; }
-.overlay-message { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); text-align: center; }
+.overlay-message { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); text-align: center; white-space: pre-line; }
 .overlay-time { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 6px; text-align: center; }
 
 .overlay-buttons {
@@ -666,7 +666,7 @@ function onQrSuccess(decodedText) {
         showOverlayError('来場者が見つかりません', 'ID: ' + visitorId);
         return;
       }
-      showOverlayPreview(data.visitor);
+      showOverlayPreview(data.visitor, data.card);
     })
     .catch(() => {
       showOverlayError('通信エラー', 'インターネット接続を確認してください');
@@ -693,11 +693,23 @@ function showOverlayLoading() {
   hideAllOverlayBlocks();
 }
 
-function showOverlayPreview(v) {
+function showOverlayPreview(v, card) {
   currentVisitor = v;
 
-  // ★ 渡し済みの仮カードを読んだときは、受付せずに警告を出す
-  //   （部署名に【カードNo.○○○】が入っていたら、渡し済みのカード）
+  // ★ 読んだQRが仮カードそのものだったときの処理（仮カードシートで判定）
+  if (card && lastScanMethod === 'QR') {
+    if (!card.assigned_to) {
+      // まだ誰にも渡していないカード → 受付させない
+      showOverlayTempCard(card.no);
+      return;
+    }
+    // すでにお客様にお渡し済みのカード → 受付済みの案内
+    showOverlayCardUsed(v, card.no);
+    return;
+  }
+
+  // ★ 予備の判定（仮カードシートが読めなかったとき）
+  //   部署名に【カードNo.○○○】が入っていたら、渡し済みのカード
   const cardMark = String(v.department || '').match(/【カードNo\.([^】]+)】/);
   if (cardMark && lastScanMethod === 'QR') {
     showOverlayCardUsed(v, cardMark[1]);
@@ -737,6 +749,28 @@ function checkinWithoutCard() {
     'よろしいですか？');
   if (!ok) return;
   confirmCheckin();
+}
+
+// ★ まだ誰にも渡していない仮カードを読んだとき（受付させない）
+function showOverlayTempCard(cardNo) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay error show';
+  document.getElementById('overlayIcon').textContent = '🚫';
+  document.getElementById('overlayName').textContent = '未使用の仮カードです';
+  document.getElementById('overlayCompany').textContent = '';
+  document.getElementById('overlayMessage').textContent =
+    'このQRはまだ誰にも渡していないカードです。受付はできません。\n' +
+    'お客様ご本人の入場証QR、または下の「名前検索」から受付してください。';
+  document.getElementById('overlayTime').textContent = '';
+  hideAllOverlayBlocks();
+
+  const cardBox = document.getElementById('overlayCardNo');
+  cardBox.innerHTML = '<span class="card-no-badge">🎫 カード No.' + escapeHtml(cardNo) + '（未使用）</span>';
+  cardBox.style.display = 'block';
+
+  document.getElementById('overlayNext').style.display = 'block';
+  lastScannedId = null;   // 誤って受付されないように消しておく
+  playSound(false);
 }
 
 // ★ すでにお客様にお渡し済みのカードを読んだとき
@@ -1101,7 +1135,7 @@ function startManualFlow(id) {
   fetchJsonWithRetry(withKey(GAS_URL + '?action=getVisitorInfo&visitorId=' + encodeURIComponent(id)))
     .then(data => {
       if (!data.success) { showOverlayError('来場者が見つかりません', 'ID: ' + id); return; }
-      showOverlayPreview(data.visitor);
+      showOverlayPreview(data.visitor, data.card);
     })
     .catch(() => { showOverlayError('通信エラー', 'インターネット接続を確認してください'); });
 }
