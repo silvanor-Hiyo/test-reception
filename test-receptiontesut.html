@@ -699,8 +699,9 @@ function showOverlayPreview(v, card) {
   // ★ 読んだQRが仮カードそのものだったときの処理（仮カードシートで判定）
   if (card && lastScanMethod === 'QR') {
     if (!card.assigned_to) {
-      // まだ誰にも渡していないカード → 受付させない
-      showOverlayTempCard(card.no);
+      // まだ誰にも渡していないカード
+      //  → 事前登録なしの当日のお客様。このカードで入場していただく
+      showOverlayWalkIn(card.no);
       return;
     }
     // すでにお客様にお渡し済みのカード → 受付済みの案内
@@ -751,26 +752,27 @@ function checkinWithoutCard() {
   confirmCheckin();
 }
 
-// ★ まだ誰にも渡していない仮カードを読んだとき（受付させない）
-function showOverlayTempCard(cardNo) {
+// ★ 未使用の仮カードを読んだとき
+//   ＝ 事前登録をしていない当日のお客様。このカードのまま受付する。
+function showOverlayWalkIn(cardNo) {
   const ov = document.getElementById('overlay');
-  ov.className = 'overlay error show';
-  document.getElementById('overlayIcon').textContent = '🚫';
-  document.getElementById('overlayName').textContent = '未使用の仮カードです';
-  document.getElementById('overlayCompany').textContent = '';
-  document.getElementById('overlayMessage').textContent =
-    'このQRはまだ誰にも渡していないカードです。受付はできません。\n' +
-    'お客様ご本人の入場証QR、または下の「名前検索」から受付してください。';
+  ov.className = 'overlay preview show';
+  document.getElementById('overlayIcon').textContent = '🎫';
+  document.getElementById('overlayName').textContent = '当日受付のお客様';
+  document.getElementById('overlayCompany').textContent = '事前登録なし（名刺をお預かりしてください）';
+  document.getElementById('overlayMessage').textContent = 'このカードで受付しますか？';
   document.getElementById('overlayTime').textContent = '';
   hideAllOverlayBlocks();
 
   const cardBox = document.getElementById('overlayCardNo');
-  cardBox.innerHTML = '<span class="card-no-badge">🎫 カード No.' + escapeHtml(cardNo) + '（未使用）</span>';
+  cardBox.innerHTML = '<span class="card-no-badge">🎫 カード No.' + escapeHtml(cardNo) + '</span>';
   cardBox.style.display = 'block';
 
-  document.getElementById('overlayNext').style.display = 'block';
-  lastScannedId = null;   // 誤って受付されないように消しておく
-  playSound(false);
+  document.getElementById('overlayActions').style.display = 'block';
+  document.getElementById('btnAssign').style.display  = 'none';
+  document.getElementById('noCardLink').style.display = 'none';
+  document.getElementById('btnCheckin').style.display = 'inline-flex';
+  document.getElementById('btnCheckin').textContent   = '✅ 受付する';
 }
 
 // ★ すでにお客様にお渡し済みのカードを読んだとき
