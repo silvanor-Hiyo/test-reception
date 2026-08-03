@@ -331,11 +331,12 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
     <div class="pw-wrap">
       <input type="password" class="input-field" id="boothKeyInput" placeholder="パスワード"
         autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+        oninput="updatePwCount()"
         onkeydown="if(event.key==='Enter') submitBoothKey()">
       <button type="button" class="pw-toggle" id="pwToggleBtn" onclick="togglePwVisible()"
         aria-label="パスワードを表示">&#128065;</button>
     </div>
-    <div class="pw-hint">&#128065; を押すと入力した文字が見えます</div>
+    <div class="pw-hint"><span id="pwCount">0文字</span>　&#128065; を押すと入力した文字が見えます</div>
     <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="submitBoothKey()">認証して開始</button>
     <div class="lock-error" id="lockError"></div>
   </div>
@@ -540,19 +541,37 @@ function togglePwVisible() {
   try { input.setSelectionRange(v.length, v.length); } catch (e) {}
 }
 
+// 入力中の文字数を表示（何文字入ったか目で確認できるように）
+function updatePwCount() {
+  var input = document.getElementById('boothKeyInput');
+  var el = document.getElementById('pwCount');
+  if (input && el) el.textContent = input.value.length + '文字';
+}
+
+// 全角英数字・全角スペースを半角に直す（IMEが全角のまま打ってしまった時の救済）
+function normalizeKey(str) {
+  if (!str) return '';
+  var out = str.replace(/[\uFF01-\uFF5E]/g, function(ch) {
+    return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+  });
+  out = out.replace(/\u3000/g, ' ');
+  return out.trim();
+}
+
 // 認証画面を開くたびに必ず「非表示」に戻す
 function resetPwVisible() {
   var input = document.getElementById('boothKeyInput');
   var btn = document.getElementById('pwToggleBtn');
   if (input) input.type = 'password';
   if (btn) { btn.textContent = '\uD83D\uDC41'; btn.setAttribute('aria-label', 'パスワードを表示'); }
+  updatePwCount();
 }
 function hideBoothLock() {
   document.getElementById('lockScreen').classList.remove('show');
 }
 
 async function submitBoothKey() {
-  const key = document.getElementById('boothKeyInput').value.trim();
+  const key = normalizeKey(document.getElementById('boothKeyInput').value);
   if (!key) { document.getElementById('lockError').textContent = 'パスワードを入力してください'; return; }
   document.getElementById('lockError').textContent = '確認しています… 少しお時間をいただきます';
   BOOTH_KEY = key;
