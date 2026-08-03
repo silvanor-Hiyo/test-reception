@@ -183,7 +183,7 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 }
 .form-group select:focus, .form-group input:focus { border-color: var(--gold); }
 
-/* 商品の複数選択（タップ式ボタン） */
+/* 商品の複数選択（タップ式ボタン）＋ 商品ごとの数量 */
 .product-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .product-count { font-size: 12px; color: var(--text-light); font-weight: 600; }
 .btn-mini {
@@ -193,13 +193,18 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 }
 #sr-product-list { display: flex; flex-direction: column; gap: 6px; }
 .product-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px;
-  background: var(--white); cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px 6px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--white); user-select: none;
   -webkit-tap-highlight-color: transparent; transition: all 0.15s;
 }
 .product-item.selected {
   border-color: var(--gold); background: var(--gold-pale, #f7f0dc);
+}
+/* 商品名の部分をタップすると選択／解除。数量ボタンは別領域なので誤爆しない */
+.product-main {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1; min-width: 0; padding: 10px 0; cursor: pointer;
 }
 .product-check {
   width: 22px; height: 22px; flex-shrink: 0;
@@ -208,7 +213,24 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
   font-size: 14px; font-weight: 700; color: var(--white);
 }
 .product-item.selected .product-check { background: var(--gold); border-color: var(--gold); }
-.product-item-name { font-size: 15px; color: var(--text); line-height: 1.4; }
+.product-item-name { font-size: 15px; color: var(--text); line-height: 1.4; word-break: break-word; }
+
+/* ★ 商品ごとの数量（選択している商品にだけ表示される） */
+.product-qty { display: none; align-items: center; gap: 4px; flex-shrink: 0; }
+.product-item.selected .product-qty { display: flex; }
+.btn-qty-item {
+  width: 40px; height: 40px; border-radius: 10px;
+  border: 1.5px solid var(--gold); background: var(--white);
+  font-size: 20px; font-weight: 700; color: var(--navy-mid);
+  font-family: inherit; cursor: pointer; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-qty-item:active { background: var(--gold); color: var(--white); }
+.qty-num-item {
+  min-width: 34px; text-align: center;
+  font-weight: 700; font-size: 17px; color: var(--navy);
+}
 
 /* アラート */
 .alert { padding: 12px 16px; border-radius: 8px; margin-top: 12px; font-size: 14px; display: none; }
@@ -408,7 +430,7 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
     <div class="card">
       <div class="card-title"><span>📦</span>サンプル依頼</div>
       <div class="form-group">
-        <label>商品名（タップで複数選択できます）</label>
+        <label>商品名（タップで選択　→　右の「−」「＋」で数量を指定）</label>
         <div class="product-toolbar">
           <span class="product-count" id="sr-count">0件選択中</span>
           <span>
@@ -440,7 +462,7 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
       <button class="btn btn-outline-dark" onclick="loadSamples()" style="padding:6px 12px;font-size:12px;">更新</button>
     </div>
     <p style="font-size:12px;color:var(--text-light);margin-bottom:8px;">
-      数量の「−」「＋」で修正、「取消」で依頼を取り消せます
+      商品ごとに1行で表示されます。数量の「−」「＋」で修正、「取消」で依頼を取り消せます
     </p>
     <div class="table-wrap">
       <table>
@@ -531,10 +553,10 @@ function togglePwVisible() {
   if (!input) return;
   if (input.type === 'password') {
     input.type = 'text';
-    if (btn) { btn.textContent = '\uD83D\uDE48'; btn.setAttribute('aria-label', 'パスワードを隠す'); }
+    if (btn) { btn.textContent = '🙈'; btn.setAttribute('aria-label', 'パスワードを隠す'); }
   } else {
     input.type = 'password';
-    if (btn) { btn.textContent = '\uD83D\uDC41'; btn.setAttribute('aria-label', 'パスワードを表示'); }
+    if (btn) { btn.textContent = '👁'; btn.setAttribute('aria-label', 'パスワードを表示'); }
   }
   input.focus();
   var v = input.value;
@@ -551,10 +573,10 @@ function updatePwCount() {
 // 全角英数字・全角スペースを半角に直す（IMEが全角のまま打ってしまった時の救済）
 function normalizeKey(str) {
   if (!str) return '';
-  var out = str.replace(/[\uFF01-\uFF5E]/g, function(ch) {
+  var out = str.replace(/[！-～]/g, function(ch) {
     return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
   });
-  out = out.replace(/\u3000/g, ' ');
+  out = out.replace(/　/g, ' ');
   return out.trim();
 }
 
@@ -563,7 +585,7 @@ function resetPwVisible() {
   var input = document.getElementById('boothKeyInput');
   var btn = document.getElementById('pwToggleBtn');
   if (input) input.type = 'password';
-  if (btn) { btn.textContent = '\uD83D\uDC41'; btn.setAttribute('aria-label', 'パスワードを表示'); }
+  if (btn) { btn.textContent = '👁'; btn.setAttribute('aria-label', 'パスワードを表示'); }
   updatePwCount();
 }
 function hideBoothLock() {
@@ -647,20 +669,32 @@ function showError() {
 }
 
 // ============================================================
-// 商品の複数選択（タップ式）
-// ブラウザのチェックボックス干渉を避けるため、divボタン＋
-// selectedProductSet（JSオブジェクト）で選択状態を管理する
+// ★ 商品の複数選択（タップ式）＋ 商品ごとの数量
+//
+// selectedProductSet は
+//   { 0: { name: '商品A', qty: 2 }, 3: { name: 'その他', qty: 1 } }
+// のような形で「選んだ商品」と「その数量」を持つ。
+// 商品名の部分をタップ＝選択／解除、右の「−」「＋」＝数量の増減。
+// ボタンは別の領域に置いてあるので、数量を押しても選択は外れない。
 // ============================================================
 var selectedProductSet = {};
+var MAX_ITEM_QTY = 999;
 
 function setProductOptions(productsStr) {
   const list = document.getElementById('sr-product-list');
   const products = String(productsStr || '').split(',').map(p => p.trim()).filter(Boolean);
   products.push('その他');
   list.innerHTML = products.map(function(p, i) {
-    return '<div class="product-item" id="pi-' + i + '" onclick="toggleProduct(' + i + ')">'
-      + '<span class="product-check" id="pc-' + i + '"></span>'
-      + '<span class="product-item-name"></span>'
+    return '<div class="product-item" id="pi-' + i + '">'
+      +   '<div class="product-main" onclick="toggleProduct(' + i + ')">'
+      +     '<span class="product-check" id="pc-' + i + '"></span>'
+      +     '<span class="product-item-name"></span>'
+      +   '</div>'
+      +   '<div class="product-qty" id="pq-' + i + '">'
+      +     '<button type="button" class="btn-qty-item" onclick="changeItemQty(' + i + ',-1)" aria-label="数量を減らす">−</button>'
+      +     '<span class="qty-num-item" id="qn-' + i + '">1</span>'
+      +     '<button type="button" class="btn-qty-item" onclick="changeItemQty(' + i + ',1)" aria-label="数量を増やす">＋</button>'
+      +   '</div>'
       + '</div>';
   }).join('');
   // 商品名はtextContentで入れる（HTML扱いによる崩れを防ぐ）
@@ -674,30 +708,66 @@ function setProductOptions(productsStr) {
 
 function toggleProduct(i) {
   var item = document.getElementById('pi-' + i);
+  if (!item) return;
   var name = item.querySelector('.product-item-name').textContent;
   var check = document.getElementById('pc-' + i);
   if (selectedProductSet[i]) {
     delete selectedProductSet[i];
     item.classList.remove('selected');
     if (check) check.textContent = '';
+    setQtyLabel(i, 1); // 次に選んだときは1から
   } else {
-    selectedProductSet[i] = name;
+    selectedProductSet[i] = { name: name, qty: 1 };
     item.classList.add('selected');
     if (check) check.textContent = '✓';
+    setQtyLabel(i, 1);
   }
   updateProductCount();
   updateOtherInput();
 }
 
+// ★ 商品ごとの数量を増減する
+function changeItemQty(i, delta) {
+  var entry = selectedProductSet[i];
+  if (!entry) {
+    // 数量ボタンを先に押した場合は、その商品を選択した扱いにする
+    toggleProduct(i);
+    entry = selectedProductSet[i];
+    if (!entry) return;
+    if (delta > 0) { /* ＋を押して選択された場合は1のまま */ }
+    updateProductCount();
+    return;
+  }
+  var next = entry.qty + delta;
+  if (next < 1) {
+    showToast('数量は1以上です。外す場合は商品名をタップしてください');
+    return;
+  }
+  if (next > MAX_ITEM_QTY) return;
+  entry.qty = next;
+  setQtyLabel(i, next);
+  updateProductCount();
+}
+
+function setQtyLabel(i, q) {
+  var el = document.getElementById('qn-' + i);
+  if (el) el.textContent = q;
+}
+
 function updateProductCount() {
-  var count = Object.keys(selectedProductSet).length;
-  document.getElementById('sr-count').textContent = count + '件選択中';
+  var count = 0, total = 0;
+  for (var k in selectedProductSet) {
+    count++;
+    total += selectedProductSet[k].qty;
+  }
+  document.getElementById('sr-count').textContent =
+    count === 0 ? '0件選択中' : (count + '件選択中　合計' + total + '個');
 }
 
 function updateOtherInput() {
   var otherChecked = false;
   for (var k in selectedProductSet) {
-    if (selectedProductSet[k] === 'その他') { otherChecked = true; break; }
+    if (selectedProductSet[k].name === 'その他') { otherChecked = true; break; }
   }
   document.getElementById('other-input-wrap').style.display = otherChecked ? 'block' : 'none';
   if (!otherChecked) document.getElementById('sr-other-text').value = '';
@@ -707,7 +777,10 @@ function selectAllProducts() {
   var items = document.querySelectorAll('#sr-product-list .product-item');
   items.forEach(function(item, i) {
     var name = item.querySelector('.product-item-name').textContent;
-    selectedProductSet[i] = name;
+    if (!selectedProductSet[i]) {
+      selectedProductSet[i] = { name: name, qty: 1 };
+      setQtyLabel(i, 1);
+    }
     item.classList.add('selected');
     var check = document.getElementById('pc-' + i);
     if (check) check.textContent = '✓';
@@ -722,6 +795,7 @@ function clearProducts() {
     item.classList.remove('selected');
     var check = document.getElementById('pc-' + i);
     if (check) check.textContent = '';
+    setQtyLabel(i, 1);
   });
   updateProductCount();
   updateOtherInput();
@@ -949,23 +1023,30 @@ function manualProcess() {
 }
 
 // ============================================================
-// サンプル依頼
+// ★ サンプル依頼（商品ごとに数量を送る）
+// 選んだ商品を items 配列にして1回の通信でまとめて送り、
+// GAS側で「商品1つ＝1行」としてスプレッドシートに書き込む。
 // ============================================================
 async function submitSampleRequest() {
   if (!currentVisitorId) return;
 
-  var selectedProducts = [];
   var otherText = document.getElementById('sr-other-text').value.trim();
+  var items = [];
+  var labels = [];
+  var totalQty = 0;
+
   for (var k in selectedProductSet) {
-    var val = selectedProductSet[k];
-    if (val === 'その他') {
-      selectedProducts.push(otherText ? 'その他：' + otherText : 'その他');
-    } else {
-      selectedProducts.push(val);
-    }
+    var entry = selectedProductSet[k];
+    var nm = entry.name;
+    if (nm === 'その他') nm = otherText ? 'その他：' + otherText : 'その他';
+    var q = parseInt(entry.qty, 10);
+    if (!q || q < 1) q = 1;
+    items.push({ product_name: nm, quantity: q });
+    labels.push(nm + '×' + q);
+    totalQty += q;
   }
 
-  if (selectedProducts.length === 0) {
+  if (items.length === 0) {
     showAlert('error', '商品を1つ以上選択してください');
     return;
   }
@@ -975,21 +1056,23 @@ async function submitSampleRequest() {
   showAlert('sending', '📤 送信中です… 処理に時間がかかります。そのままお待ちください');
 
   try {
-    // 選んだ商品を「、」区切りでまとめて1件として送信（数量＝選択した商品数）
     await apiPost('sampleRequestByToken', {
       token: TOKEN,
       visitorId: currentVisitorId,
-      product_name: selectedProducts.join('、'),
-      quantity: selectedProducts.length,
+      items: items,
+      // ↓ 旧バージョンのGASでも記録が消えないための保険（新GASでは使われません）
+      product_name: labels.join('、'),
+      quantity: totalQty,
       notes: document.getElementById('sr-notes').value
     });
     setSampleSending(false);
-    showAlert('success', '✅ サンプル依頼を送信しました！');
+    showAlert('success', '✅ サンプル依頼を送信しました！（' + items.length + '品目・合計' + totalQty + '個）');
     playBeep(800);
     currentVisitorId = null;
     currentVisitorData = null;
     setTimeout(() => {
       document.getElementById('visitorPanel').style.display = 'none';
+      clearProducts();
       loadSamples();
     }, 2000);
   } catch(e) {
