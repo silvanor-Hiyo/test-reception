@@ -502,9 +502,49 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
 // ============================================================
 // 設定
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8IQaf54k3qVoCGfGcueOZWcMUKiFSWQH1bj3Ic-CB4ZLdIg/exec';
+// ★㉓ ブースA〜Dの4アカウント振り分け
+//
+//  ・URLに ?g=a / ?g=b / ?g=c / ?g=d が付いていれば、そのグループのGASに繋ぐ
+//  ・付いていない古いURLのときは、メインGASに「このトークンはどのグループ？」と
+//    1回だけ問い合わせて自動で判定する
+//  ・判定できたら端末に覚えるので、2回目以降は問い合わせすら発生しない
+//  ・どうしても判定できないときだけ、A〜Dを手で選ぶ画面を出す
+//
+//  ※サンプル依頼・ブース訪問は、繋がったグループのスプレッドシートに記録されます。
+//    来場者名簿は今まで通りメインから各グループへ自動配布されます（Sync.gs）。
+
+// メインGAS（グループ判定を聞くときだけ使う。受付処理では使いません）
+const MAIN_GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8IQaf54k3qVoCGfGcueOZWcMUKiFSWQH1bj3Ic-CB4ZLdIg/exec';
+
+// グループA〜DのGAS URL
+const GROUP_GAS_URLS = {
+  a: 'https://script.google.com/macros/s/AKfycbzPEqHRfKcQ44A8HzyHRK-vn01163xxmvOcVJgb4V6sgokM1xnOUvz2aVbo2duyS4mk/exec',
+  b: 'https://script.google.com/macros/s/AKfycbzCkqCCOiCe5PmB7ypTmdEBjiaJClh6uEFKwyqDMUks7qfwltB3fTcxsEcbBO0OMSR8/exec',
+  c: 'https://script.google.com/macros/s/AKfycbxh4A1SVLQkUDKbdJfKw342rKPXZwNyhQXgc2Amf0D-autHIZg3eNNWx4FDcUFZO8jAEg/exec',
+  d: 'https://script.google.com/macros/s/AKfycbzcv2gMXosTNuhU0g2JhbNw-75fSVSwKbH_abE5GSO2bXZjV4uKpC0hVjgxvPiWkaryew/exec'
+};
+
+const GROUP_LABELS = { a: 'A', b: 'B', c: 'C', d: 'D' };
+
 const urlParams = new URLSearchParams(window.location.search);
 const TOKEN = urlParams.get('token') || '';
+
+// 決定したグループと、その接続先。init() の中で確定します。
+let GROUP   = '';
+let GAS_URL = '';
+
+const GROUP_STORE_KEY = 'boothGroup_' + TOKEN;
+
+function isValidGroup(g) {
+  g = String(g || '').trim().toLowerCase();
+  return !!(GROUP_GAS_URLS[g] && String(GROUP_GAS_URLS[g]).indexOf('http') === 0);
+}
+
+function applyGroup(g) {
+  GROUP   = String(g).trim().toLowerCase();
+  GAS_URL = GROUP_GAS_URLS[GROUP];
+  try { localStorage.setItem(GROUP_STORE_KEY, GROUP); } catch (e) {}
+}
 
 // ============================================================
 // ★ ブース用パスワード認証の管理
@@ -646,6 +686,53 @@ async function init() {
     showError();
     return;
   }
+
+  // ★㉓ まず「どのグループのGASに繋ぐか」を決める
+  const ready = await resolveGroup();
+  if (!ready) return;   // 手動選択画面を出したので、選ばれるまでここで止まる
+
+  startAfterGroup();
+}
+
+// ============================================================
+// ★㉓ 接続先グループを決める
+//   ① URLの ?g= を見る
+//   ② 端末に覚えている値を使う
+//   ③ メインGASにトークンを照会する（1回だけ）
+//   ④ それでも駄目なら手で選んでもらう
+//   戻り値 true = 決まった / false = 手動選択画面を出した
+// ============================================================
+async function resolveGroup() {
+  // ① URLの ?g=
+  const fromUrl = (urlParams.get('g') || '').toLowerCase();
+  if (isValidGroup(fromUrl)) { applyGroup(fromUrl); return true; }
+
+  // ② 端末に覚えている値
+  let saved = '';
+  try { saved = (localStorage.getItem(GROUP_STORE_KEY) || '').toLowerCase(); } catch (e) {}
+  if (isValidGroup(saved)) { applyGroup(saved); return true; }
+
+  // ③ メインGASに照会（パスワード不要。返るのは a〜d の1文字だけ）
+  showGroupChecking();
+  try {
+    const url = MAIN_GAS_URL + '?action=getGroupByToken&token=' + encodeURIComponent(TOKEN);
+    const data = await fetchJsonWithRetry(url);
+    if (data && data.success && isValidGroup(data.group)) {
+      applyGroup(data.group);
+      hideGroupOverlay();
+      return true;
+    }
+  } catch (e) {
+    // 通信できなくても、次の手動選択でリカバリできる
+  }
+
+  // ④ 手動選択
+  showGroupPicker();
+  return false;
+}
+
+// グループが決まったあとの、本来の起動処理
+async function startAfterGroup() {
   // 保存済みのパスワードが有効期限内ならそのまま開始、なければ入力を求める
   BOOTH_KEY = loadSavedAuth();
   if (!BOOTH_KEY) {
@@ -665,6 +752,71 @@ async function init() {
     } else {
       showError();
     }
+  }
+}
+
+// ============================================================
+// ★㉓ グループ判定中／グループ手動選択の画面
+//   HTML本体はいじらず、必要なときだけ画面に重ねて出します。
+// ============================================================
+function removeGroupOverlay_() {
+  const old = document.getElementById('groupOverlay');
+  if (old && old.parentNode) old.parentNode.removeChild(old);
+}
+function hideGroupOverlay() { removeGroupOverlay_(); }
+
+function buildGroupOverlay_(innerHtml) {
+  removeGroupOverlay_();
+  const box = document.createElement('div');
+  box.id = 'groupOverlay';
+  box.setAttribute('style',
+    'position:fixed;inset:0;z-index:9999;background:#ffffff;' +
+    'display:flex;align-items:center;justify-content:center;padding:24px;' +
+    'font-family:sans-serif;');
+  box.innerHTML =
+    '<div style="max-width:420px;width:100%;text-align:center;">' + innerHtml + '</div>';
+  document.body.appendChild(box);
+  return box;
+}
+
+function showGroupChecking() {
+  buildGroupOverlay_(
+    '<div style="font-size:17px;color:#1a3a9e;font-weight:bold;margin-bottom:10px;">' +
+    '接続先を確認しています</div>' +
+    '<div style="font-size:14px;color:#555;line-height:1.7;">' +
+    'そのままお待ちください（数秒）</div>');
+}
+
+function showGroupPicker() {
+  let btns = '';
+  const keys = ['a', 'b', 'c', 'd'];
+  for (let i = 0; i < keys.length; i++) {
+    const g = keys[i];
+    if (!isValidGroup(g)) continue;
+    btns +=
+      '<button type="button" data-group="' + g + '" ' +
+      'style="display:block;width:100%;margin:10px 0;padding:18px;font-size:20px;' +
+      'font-weight:bold;color:#fff;background:#1a3a9e;border:none;border-radius:10px;">' +
+      'グループ ' + GROUP_LABELS[g] + '</button>';
+  }
+
+  const box = buildGroupOverlay_(
+    '<div style="font-size:18px;font-weight:bold;color:#1a3a9e;margin-bottom:8px;">' +
+    'グループを選んでください</div>' +
+    '<div style="font-size:14px;color:#555;line-height:1.7;margin-bottom:18px;">' +
+    'ご案内のメールに書かれているグループ（A〜D）のボタンを押してください。<br>' +
+    'わからない場合は事務局までお声がけください。</div>' +
+    btns +
+    '<div style="font-size:12px;color:#888;margin-top:16px;line-height:1.6;">' +
+    '一度選ぶと、この端末では次回から自動で接続します。</div>');
+
+  const list = box.querySelectorAll('button[data-group]');
+  for (let i = 0; i < list.length; i++) {
+    list[i].addEventListener('click', function() {
+      applyGroup(this.getAttribute('data-group'));
+      removeGroupOverlay_();
+      startAfterGroup();
+    });
   }
 }
 
