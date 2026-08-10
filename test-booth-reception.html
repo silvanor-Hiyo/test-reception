@@ -1,1 +1,1491 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ブース受付 - 永和物産 食品展示会2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root {
+  --navy: #0d1f5c;
+  --navy-mid: #1a3a9e;
+  --gold: #c8a84b;
+  --gold-light: #e8cc80;
+  --gold-pale: #f7f0dc;
+  --cream: #faf7f0;
+  --white: #ffffff;
+  --text: #1a1a2e;
+  --text-light: #6b6b8a;
+  --border: #ddd5be;
+  --success: #1a6e35;
+  --success-bg: #e8f7ed;
+  --warning: #92400e;
+  --warning-bg: #fef3c7;
+  --danger: #991b1b;
+  --danger-bg: #fef2f2;
+  --radius: 14px;
+  --shadow: 0 4px 20px rgba(13,31,92,0.12);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
 
+/* ヘッダー */
+.header {
+  background: linear-gradient(160deg, #1a3a9e 0%, #0d1f5c 100%);
+  border-bottom: 3px solid var(--gold);
+  padding: 14px 16px;
+  text-align: center;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 12px rgba(13,31,92,0.4);
+  position: relative;
+}
+.header-event { font-size: 10px; letter-spacing: 3px; color: rgba(200,168,75,0.8); font-weight: 600; margin-bottom: 4px; }
+.header h1 { font-size: 18px; font-weight: 700; color: white; margin-bottom: 4px; }
+.header-booth { font-size: 15px; color: var(--gold-light); font-weight: 600; }
+.btn-logout {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.3); border-radius: 20px;
+  padding: 5px 11px; font-size: 11px; font-weight: 600;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+}
+
+main { max-width: 560px; margin: 0 auto; padding: 16px; }
+
+/* カード */
+.card {
+  background: var(--white); border-radius: var(--radius);
+  padding: 20px; margin-bottom: 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.card::before {
+  content: ''; position: absolute;
+  top: 0; left: 20px; right: 20px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.5;
+}
+.card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+/* カメラエリア */
+.camera-wrap {
+  position: relative; border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 16px;
+  border: 2px solid var(--gold); box-shadow: var(--shadow);
+  background: #000; display: none;
+}
+.camera-wrap.active { display: block; }
+.camera-header {
+  background: var(--navy); padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.camera-title { font-size: 14px; font-weight: 700; color: var(--gold-light); display: flex; align-items: center; gap: 8px; }
+.camera-status { font-size: 11px; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 12px; }
+.camera-status.scanning { color: #4caf50; background: rgba(76,175,80,0.15); }
+.camera-status.paused { color: var(--gold-light); background: rgba(200,168,75,0.15); }
+
+#qr-reader { width: 100%; background: #000; }
+#qr-reader video { width: 100% !important; max-height: 300px; object-fit: cover; }
+#qr-reader__scan_region { background: transparent !important; }
+#qr-reader__scan_region img { display: none !important; }
+#qr-reader__dashboard { display: none !important; }
+
+.camera-guide {
+  background: rgba(0,0,0,0.6); padding: 10px 16px;
+  text-align: center; font-size: 13px; color: rgba(255,255,255,0.8);
+}
+.camera-stop-btn { background: var(--navy); padding: 10px 16px; }
+
+/* オーバーレイ */
+.overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: flex-start;
+  padding: 20px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 9999;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: fadeIn 0.3s ease;
+}
+.overlay.show { display: flex; }
+/* ★ 中身を1枚のまとまりにして margin:auto で上下中央寄せ。
+   　中身が画面より高いときは、はみ出さずにスクロールできる（ボタンが押せなくなるのを防ぐ） */
+.overlay-inner {
+  width: 100%; max-width: 460px;
+  margin: auto;
+  display: flex; flex-direction: column; align-items: center;
+}
+.overlay.preview { background: rgba(13,31,92,0.92); }
+.overlay.success { background: rgba(26,110,53,0.93); }
+.overlay.duplicate { background: rgba(146,64,14,0.93); }
+.overlay.error { background: rgba(139,26,26,0.93); }
+.overlay.warning { background: rgba(146,64,14,0.95); }
+.overlay.loading { background: rgba(13,31,92,0.85); }
+@keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+
+.overlay-icon { font-size: 48px; margin-bottom: 8px; }
+.overlay-name { font-size: 22px; font-weight: 700; color: white; margin-bottom: 4px; text-align: center; }
+.overlay-company { font-size: 13px; color: rgba(255,255,255,0.8); margin-bottom: 8px; text-align: center; line-height: 1.5; }
+.overlay-message { font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.95); text-align: center; line-height: 1.7; }
+.overlay-time { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+.overlay-buttons { display: flex; gap: 10px; margin-top: 16px; width: 100%; }
+.overlay-buttons .btn { flex: 1; min-height: 52px; font-size: 15px; }
+#overlayNext .btn { min-height: 52px; font-size: 15px; }
+/* オーバーレイ表示中は後ろの画面を固定 */
+body.overlay-open { overflow: hidden; }
+
+/* カメラ起動ボタン */
+.btn-camera-start {
+  width: 100%; padding: 20px;
+  background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+  color: var(--gold-light); border: 2px solid var(--gold);
+  border-radius: var(--radius); font-size: 17px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 16px; box-shadow: var(--shadow); transition: all 0.2s;
+}
+.btn-camera-start .icon { font-size: 30px; }
+
+/* ボタン */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 12px 20px; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-primary { background: linear-gradient(135deg, var(--gold) 0%, #b8922e 100%); color: var(--navy); }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1a6e35); color: white; }
+.btn-danger { background: linear-gradient(135deg, #e53935, #c62828); color: white; }
+.btn-outline { background: rgba(255,255,255,0.15); color: white; border: 1.5px solid rgba(255,255,255,0.4); }
+.btn-outline-dark { background: transparent; color: var(--navy-mid); border: 1.5px solid var(--border); }
+.btn-block { width: 100%; }
+.btn-row { display: flex; gap: 8px; }
+
+/* 手動入力 */
+.manual-row { display: flex; gap: 8px; }
+.input-field {
+  flex: 1; padding: 12px 14px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-size: 15px; font-family: inherit;
+  color: var(--text); outline: none; transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.input-field:focus { border-color: var(--navy-mid); }
+.input-field::placeholder { color: #bbb8d0; font-size: 13px; }
+
+/* 来場者パネル */
+.visitor-found {
+  background: var(--success-bg); border: 2px solid #22c55e;
+  border-radius: 12px; padding: 16px; margin-bottom: 12px;
+}
+.v-name { font-size: 22px; font-weight: 700; color: var(--navy); }
+.v-company { font-size: 13px; color: var(--text-light); margin-top: 4px; }
+
+/* フォーム */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+.form-group select, .form-group input, .form-group textarea {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 15px; font-family: inherit;
+  outline: none; transition: border-color 0.2s; -webkit-appearance: none;
+}
+.form-group select:focus, .form-group input:focus { border-color: var(--gold); }
+
+/* 商品の複数選択（タップ式ボタン）＋ 商品ごとの数量 */
+.product-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.product-count { font-size: 12px; color: var(--text-light); font-weight: 600; }
+.btn-mini {
+  padding: 5px 12px; font-size: 12px; font-weight: 600; font-family: inherit;
+  background: transparent; color: var(--navy-mid); border: 1.5px solid var(--border);
+  border-radius: 6px; cursor: pointer; margin-left: 6px;
+}
+#sr-product-list { display: flex; flex-direction: column; gap: 6px; }
+.product-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px 6px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--white); user-select: none;
+  -webkit-tap-highlight-color: transparent; transition: all 0.15s;
+}
+.product-item.selected {
+  border-color: var(--gold); background: var(--gold-pale, #f7f0dc);
+}
+/* 商品名の部分をタップすると選択／解除。数量ボタンは別領域なので誤爆しない */
+.product-main {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1; min-width: 0; padding: 10px 0; cursor: pointer;
+}
+.product-check {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border: 2px solid var(--border); border-radius: 6px; background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--white);
+}
+.product-item.selected .product-check { background: var(--gold); border-color: var(--gold); }
+.product-item-name { font-size: 15px; color: var(--text); line-height: 1.4; word-break: break-word; }
+
+/* ★ 商品ごとの数量（選択している商品にだけ表示される） */
+.product-qty { display: none; align-items: center; gap: 4px; flex-shrink: 0; }
+.product-item.selected .product-qty { display: flex; }
+.btn-qty-item {
+  width: 40px; height: 40px; border-radius: 10px;
+  border: 1.5px solid var(--gold); background: var(--white);
+  font-size: 20px; font-weight: 700; color: var(--navy-mid);
+  font-family: inherit; cursor: pointer; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-qty-item:active { background: var(--gold); color: var(--white); }
+.qty-num-item {
+  min-width: 34px; text-align: center;
+  font-weight: 700; font-size: 17px; color: var(--navy);
+}
+
+/* アラート */
+.alert { padding: 12px 16px; border-radius: 8px; margin-top: 12px; font-size: 14px; display: none; }
+.alert.show { display: block; }
+.alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #a8ddb8; }
+.alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
+.alert-sending { background: #fff8e1; color: #92400e; border: 1px solid #f0c674; font-weight: 700; }
+.btn-spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.35);
+  border-top-color:#fff; border-radius:50%; animation: spin 0.8s linear infinite; vertical-align:-2px; }
+
+/* サンプルテーブル */
+.table-wrap { overflow-x: auto; margin: 8px -4px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 10px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-weight: 600; color: var(--text-light); font-size: 12px; }
+.tag { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.tag-pending { background: var(--warning-bg); color: var(--warning); }
+.tag-done { background: var(--success-bg); color: var(--success); }
+.tag-cancel { background: #eeeeee; color: #888888; }
+tr.row-cancel td { color: #aaaaaa; text-decoration: line-through; }
+tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
+
+/* 数量修正・取消ボタン */
+.qty-cell { display: flex; align-items: center; gap: 4px; }
+.btn-qty {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--white);
+  font-size: 18px; font-weight: 700; color: var(--navy-mid);
+  font-family: inherit; cursor: pointer; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.btn-qty:active { background: var(--gold-pale); }
+.qty-num { min-width: 24px; text-align: center; font-weight: 700; font-size: 15px; }
+.btn-cancel-sample {
+  padding: 6px 10px; font-size: 12px; font-weight: 600; font-family: inherit;
+  background: transparent; color: var(--danger); border: 1.5px solid #f0c8c8;
+  border-radius: 6px; cursor: pointer;
+}
+
+/* エラー画面 */
+.error-screen { text-align: center; padding: 60px 20px; }
+.error-screen .icon { font-size: 60px; margin-bottom: 16px; }
+.error-screen h2 { color: #c62828; margin-bottom: 8px; font-size: 20px; }
+.error-screen p { font-size: 14px; color: var(--text-light); line-height: 1.7; }
+
+/* スピナー */
+.spinner {
+  display: inline-block; width: 36px; height: 36px;
+  border: 4px solid rgba(255,255,255,0.2);
+  border-top-color: white; border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin-bottom: 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* トースト */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--navy); color: white;
+  padding: 12px 24px; border-radius: 30px;
+  font-size: 14px; font-weight: 600;
+  border: 1px solid var(--gold);
+  box-shadow: 0 4px 20px rgba(13,31,92,0.3);
+  z-index: 999; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* パスワード認証画面 */
+.lock-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, #1a3a9e 0%, #0d1f5c 100%);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.lock-screen.show { display: flex; }
+.lock-card {
+  background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 28px 24px; width: 100%; max-width: 360px; text-align: center;
+}
+.lock-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+.lock-desc { font-size: 13px; color: var(--text-light); margin-bottom: 16px; line-height: 1.7; }
+.lock-error { font-size: 13px; color: var(--danger); margin-top: 10px; min-height: 18px; font-weight: 600; }
+
+/* パスワード表示切り替え */
+.pw-wrap { position: relative; display: block; width: 100%; }
+.pw-wrap .input-field { width: 100%; padding-right: 52px; }
+.pw-toggle {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  width: 40px; height: 40px; border: none; background: transparent;
+  cursor: pointer; font-size: 19px; line-height: 1; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; color: var(--text-light);
+  -webkit-tap-highlight-color: transparent;
+}
+.pw-toggle:active { background: #eef0f8; }
+.pw-hint { font-size: 11px; color: var(--text-light); margin-top: 6px; text-align: right; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-event">EIWA BUSSAN FOOD EXHIBITION 2026</div>
+  <h1>ブース受付システム</h1>
+  <div class="header-booth" id="headerBoothName">読み込んでいます…</div>
+  <button class="btn-logout" id="logoutBtn" style="display:none;" onclick="boothLogout()">ログアウト</button>
+</div>
+
+<!-- エラー画面 -->
+<div id="errorScreen" class="error-screen" style="display:none;">
+  <div class="icon">🔒</div>
+  <h2>アクセスできません</h2>
+  <p>URLが正しくないか、有効期限が切れています。<br>永和物産の担当者にお問い合わせください。</p>
+</div>
+
+<!-- パスワード認証画面 -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-title">🔒 ブース認証</div>
+    <p class="lock-desc">ブース受付を開始するには、<br>永和物産よりご案内した<br><strong>ブース用パスワード</strong>を入力してください。</p>
+    <div class="pw-wrap">
+      <input type="password" class="input-field" id="boothKeyInput" placeholder="パスワード"
+        autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+        oninput="updatePwCount()"
+        onkeydown="if(event.key==='Enter') submitBoothKey()">
+      <button type="button" class="pw-toggle" id="pwToggleBtn" onclick="togglePwVisible()"
+        aria-label="パスワードを表示">&#128065;</button>
+    </div>
+    <div class="pw-hint"><span id="pwCount">0文字</span>　&#128065; を押すと入力した文字が見えます</div>
+    <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="submitBoothKey()">認証して開始</button>
+    <div class="lock-error" id="lockError"></div>
+  </div>
+</div>
+
+<!-- メインコンテンツ -->
+<div id="mainContent" style="display:none;">
+<main>
+
+  <!-- カメラ起動ボタン -->
+  <button class="btn-camera-start" id="startBtn" onclick="startCamera()">
+    <span class="icon">📷</span>
+    <span>カメラを起動してQRをスキャン</span>
+  </button>
+
+  <!-- カメラ＋オーバーレイ -->
+  <div class="camera-wrap" id="cameraWrap">
+    <div class="camera-header">
+      <div class="camera-title"><span>📷</span> QRコードをスキャン中</div>
+      <div class="camera-status scanning" id="cameraStatus">スキャン待機中</div>
+    </div>
+    <div id="qr-reader"></div>
+    <div class="camera-guide">来場者の入場証QRコードをカメラに向けてください</div>
+
+
+    <div class="camera-stop-btn">
+      <button class="btn btn-outline-dark btn-block" onclick="stopCamera()" style="font-size:13px;padding:10px;">
+        カメラを停止する
+      </button>
+    </div>
+  </div>
+
+  <!-- 手動入力 -->
+  <div class="card">
+    <div class="card-title"><span>⌨️</span>手動入力（QRが読めない場合）</div>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">
+      来場者IDを直接入力できます（例：V-ABC123）
+    </p>
+    <div class="manual-row">
+      <input type="text" class="input-field" id="manualId"
+        placeholder="V-XXXXXX"
+        style="font-family:monospace;text-transform:uppercase;"
+        onkeydown="if(event.key==='Enter') manualProcess()">
+      <button class="btn btn-primary" onclick="manualProcess()">確認</button>
+    </div>
+  </div>
+
+  <!-- 来場者パネル（サンプル依頼） -->
+  <div id="visitorPanel" style="display:none;">
+    <div class="visitor-found">
+      <div class="v-name" id="visitorName"></div>
+      <div class="v-company" id="visitorCompany"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>📦</span>サンプル依頼</div>
+      <div class="form-group">
+        <label>商品名（タップで選択　→　右の「−」「＋」で数量を指定）</label>
+        <div class="product-toolbar">
+          <span class="product-count" id="sr-count">0件選択中</span>
+          <span>
+            <button type="button" class="btn-mini" onclick="selectAllProducts()">全選択</button>
+            <button type="button" class="btn-mini" onclick="clearProducts()">クリア</button>
+          </span>
+        </div>
+        <div id="sr-product-list"></div>
+        <div id="other-input-wrap" style="display:none;margin-top:8px;">
+          <input type="text" id="sr-other-text" placeholder="その他の商品名を入力">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>備考（配送先・用途など）</label>
+        <textarea id="sr-notes" rows="2" placeholder="例：〇〇支店へ発送 / 社内試食用" style="resize:none;"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success btn-block" id="sampleSubmitBtn" onclick="submitSampleRequest()">📦 サンプル依頼を送信</button>
+        <button class="btn btn-outline-dark" id="visitOnlyBtn" onclick="recordVisitOnly()" style="white-space:nowrap;">訪問のみ</button>
+      </div>
+      <div class="alert" id="sampleAlert"></div>
+    </div>
+  </div>
+
+  <!-- サンプル依頼一覧 -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="card-title" style="margin:0"><span>📋</span>サンプル依頼一覧</div>
+      <button class="btn btn-outline-dark" onclick="loadSamples()" style="padding:6px 12px;font-size:12px;">更新</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-light);margin-bottom:8px;">
+      商品ごとに1行で表示されます。数量の「−」「＋」で修正、「取消」で依頼を取り消せます
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>時刻</th><th>来場者</th><th>会社</th><th>商品</th><th>数量</th><th>状態</th><th>操作</th></tr>
+        </thead>
+        <tbody id="sampleTable">
+          <tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ★ オーバーレイ（カメラ枠の外＝画面全体に出す。カメラ未起動でも表示され、ボタンが隠れない） -->
+<div class="overlay" id="overlay">
+  <div class="overlay-inner">
+    <div class="overlay-icon" id="overlayIcon"></div>
+    <div class="overlay-name" id="overlayName"></div>
+    <div class="overlay-company" id="overlayCompany"></div>
+    <div class="overlay-message" id="overlayMessage"></div>
+    <div class="overlay-time" id="overlayTime"></div>
+    <div class="overlay-buttons" id="overlayButtons" style="display:none;">
+      <button class="btn btn-danger" onclick="cancelScan()">❌ キャンセル</button>
+      <button class="btn btn-primary" onclick="confirmVisit()">✅ 記録する</button>
+    </div>
+    <div id="overlayNext" style="display:none; margin-top:16px; width:100%;">
+      <button class="btn btn-outline btn-block" id="overlayNextBtn" onclick="resetScan()">次の来場者へ →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+// ★㉓ ブースA〜Dの4アカウント振り分け
+//
+//  ・URLに ?g=a / ?g=b / ?g=c / ?g=d が付いていれば、そのグループのGASに繋ぐ
+//  ・付いていない古いURLのときは、メインGASに「このトークンはどのグループ？」と
+//    1回だけ問い合わせて自動で判定する
+//  ・判定できたら端末に覚えるので、2回目以降は問い合わせすら発生しない
+//  ・どうしても判定できないときだけ、A〜Dを手で選ぶ画面を出す
+//
+//  ※サンプル依頼・ブース訪問は、繋がったグループのスプレッドシートに記録されます。
+//    来場者名簿は今まで通りメインから各グループへ自動配布されます（Sync.gs）。
+
+// メインGAS（グループ判定を聞くときだけ使う。受付処理では使いません）
+const MAIN_GAS_URL = 'https://script.google.com/macros/s/AKfycbzu01ilMhbcurDDW8Y7ZdW8IQaf54k3qVoCGfGcueOZWcMUKiFSWQH1bj3Ic-CB4ZLdIg/exec';
+
+// グループA〜DのGAS URL
+const GROUP_GAS_URLS = {
+  a: 'https://script.google.com/macros/s/AKfycbzPEqHRfKcQ44A8HzyHRK-vn01163xxmvOcVJgb4V6sgokM1xnOUvz2aVbo2duyS4mk/exec',
+  b: 'https://script.google.com/macros/s/AKfycbzCkqCCOiCe5PmB7ypTmdEBjiaJClh6uEFKwyqDMUks7qfwltB3fTcxsEcbBO0OMSR8/exec',
+  c: 'https://script.google.com/macros/s/AKfycbxh4A1SVLQkUDKbdJfKw342rKPXZwNyhQXgc2Amf0D-autHIZg3eNNWx4FDcUFZO8jAEg/exec',
+  d: 'https://script.google.com/macros/s/AKfycbzcv2gMXosTNuhU0g2JhbNw-75fSVSwKbH_abE5GSO2bXZjV4uKpC0hVjgxvPiWkaryew/exec'
+};
+
+const GROUP_LABELS = { a: 'A', b: 'B', c: 'C', d: 'D' };
+
+const urlParams = new URLSearchParams(window.location.search);
+const TOKEN = urlParams.get('token') || '';
+
+// 決定したグループと、その接続先。init() の中で確定します。
+let GROUP   = '';
+let GAS_URL = '';
+
+const GROUP_STORE_KEY = 'boothGroup_' + TOKEN;
+
+function isValidGroup(g) {
+  g = String(g || '').trim().toLowerCase();
+  return !!(GROUP_GAS_URLS[g] && String(GROUP_GAS_URLS[g]).indexOf('http') === 0);
+}
+
+function applyGroup(g) {
+  GROUP   = String(g).trim().toLowerCase();
+  GAS_URL = GROUP_GAS_URLS[GROUP];
+  try { localStorage.setItem(GROUP_STORE_KEY, GROUP); } catch (e) {}
+}
+
+// ============================================================
+// ★ ブース用パスワード認証の管理
+//  - URLに加えてパスワード（BOOTH_SECRET）の入力が必要
+//  - 30分間操作がなければ自動ログアウト
+//  - ヘッダーの「ログアウト」ボタンで手動ログアウト
+// ============================================================
+const BOOTH_IDLE_LIMIT_MS = 30 * 60 * 1000; // 無操作30分で自動ログアウト
+const AUTH_STORE_KEY = 'boothAuth_' + TOKEN;
+
+let BOOTH_KEY = '';
+
+function loadSavedAuth() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(AUTH_STORE_KEY) || 'null');
+    if (!saved || !saved.key || !saved.t) return '';
+    if (Date.now() - saved.t > BOOTH_IDLE_LIMIT_MS) {
+      localStorage.removeItem(AUTH_STORE_KEY);
+      return '';
+    }
+    return saved.key;
+  } catch(e) { return ''; }
+}
+
+function saveAuth() {
+  localStorage.setItem(AUTH_STORE_KEY, JSON.stringify({ key: BOOTH_KEY, t: Date.now() }));
+}
+
+function touchActivity() {
+  if (BOOTH_KEY) saveAuth(); // 操作のたびに時刻を更新
+}
+
+function boothLogout(message) {
+  BOOTH_KEY = '';
+  localStorage.removeItem(AUTH_STORE_KEY);
+  try { stopCamera(); } catch(e) {}
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
+  showBoothLock(message || 'ログアウトしました');
+}
+
+document.addEventListener('click', touchActivity);
+document.addEventListener('touchstart', touchActivity);
+document.addEventListener('keydown', touchActivity);
+
+// 1分ごとに期限チェック
+setInterval(function() {
+  if (BOOTH_KEY && !loadSavedAuth()) {
+    boothLogout('一定時間操作がなかったため、再度パスワードを入力してください');
+  }
+}, 60 * 1000);
+
+function showBoothLock(msg) {
+  document.getElementById('lockScreen').classList.add('show');
+  document.getElementById('lockError').textContent = msg || '';
+  resetPwVisible();
+}
+
+// パスワードの表示／非表示を切り替える
+function togglePwVisible() {
+  var input = document.getElementById('boothKeyInput');
+  var btn = document.getElementById('pwToggleBtn');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btn) { btn.textContent = '🙈'; btn.setAttribute('aria-label', 'パスワードを隠す'); }
+  } else {
+    input.type = 'password';
+    if (btn) { btn.textContent = '👁'; btn.setAttribute('aria-label', 'パスワードを表示'); }
+  }
+  input.focus();
+  var v = input.value;
+  try { input.setSelectionRange(v.length, v.length); } catch (e) {}
+}
+
+// 入力中の文字数を表示（何文字入ったか目で確認できるように）
+function updatePwCount() {
+  var input = document.getElementById('boothKeyInput');
+  var el = document.getElementById('pwCount');
+  if (input && el) el.textContent = input.value.length + '文字';
+}
+
+// 全角英数字・全角スペースを半角に直す（IMEが全角のまま打ってしまった時の救済）
+function normalizeKey(str) {
+  if (!str) return '';
+  var out = str.replace(/[！-～]/g, function(ch) {
+    return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+  });
+  out = out.replace(/　/g, ' ');
+  return out.trim();
+}
+
+// 認証画面を開くたびに必ず「非表示」に戻す
+function resetPwVisible() {
+  var input = document.getElementById('boothKeyInput');
+  var btn = document.getElementById('pwToggleBtn');
+  if (input) input.type = 'password';
+  if (btn) { btn.textContent = '👁'; btn.setAttribute('aria-label', 'パスワードを表示'); }
+  updatePwCount();
+}
+function hideBoothLock() {
+  document.getElementById('lockScreen').classList.remove('show');
+}
+
+async function submitBoothKey() {
+  const key = normalizeKey(document.getElementById('boothKeyInput').value);
+  if (!key) { document.getElementById('lockError').textContent = 'パスワードを入力してください'; return; }
+  document.getElementById('lockError').textContent = '確認しています… 少しお時間をいただきます';
+  BOOTH_KEY = key;
+  try {
+    const result = await apiGet('getBoothByToken', { token: TOKEN });
+    saveAuth();
+    hideBoothLock();
+    startBooth(result.booth);
+  } catch(e) {
+    BOOTH_KEY = '';
+    if (e.code === 'booth_auth') {
+      document.getElementById('lockError').textContent = 'パスワードが違います';
+    } else {
+      document.getElementById('lockError').textContent = 'エラー：' + (e.message || '接続を確認してください');
+    }
+  }
+}
+
+let boothInfo = null;
+let currentVisitorId = null;
+let currentVisitorData = null;
+let currentSamples = [];
+let html5QrCode = null;
+let isScanning = false;
+let scanPaused = false;
+let scanCooldown = false;
+
+// ============================================================
+// 初期化
+// ============================================================
+async function init() {
+  if (!TOKEN) {
+    showError();
+    return;
+  }
+
+  // ★㉓ まず「どのグループのGASに繋ぐか」を決める
+  const ready = await resolveGroup();
+  if (!ready) return;   // 手動選択画面を出したので、選ばれるまでここで止まる
+
+  startAfterGroup();
+}
+
+// ============================================================
+// ★㉓ 接続先グループを決める
+//   ① URLの ?g= を見る
+//   ② 端末に覚えている値を使う
+//   ③ メインGASにトークンを照会する（1回だけ）
+//   ④ それでも駄目なら手で選んでもらう
+//   戻り値 true = 決まった / false = 手動選択画面を出した
+// ============================================================
+async function resolveGroup() {
+  // ① URLの ?g=
+  const fromUrl = (urlParams.get('g') || '').toLowerCase();
+  if (isValidGroup(fromUrl)) { applyGroup(fromUrl); return true; }
+
+  // ② 端末に覚えている値
+  let saved = '';
+  try { saved = (localStorage.getItem(GROUP_STORE_KEY) || '').toLowerCase(); } catch (e) {}
+  if (isValidGroup(saved)) { applyGroup(saved); return true; }
+
+  // ③ メインGASに照会（パスワード不要。返るのは a〜d の1文字だけ）
+  showGroupChecking();
+  try {
+    const url = MAIN_GAS_URL + '?action=getGroupByToken&token=' + encodeURIComponent(TOKEN);
+    const data = await fetchJsonWithRetry(url);
+    if (data && data.success && isValidGroup(data.group)) {
+      applyGroup(data.group);
+      hideGroupOverlay();
+      return true;
+    }
+  } catch (e) {
+    // 通信できなくても、次の手動選択でリカバリできる
+  }
+
+  // ④ 手動選択
+  showGroupPicker();
+  return false;
+}
+
+// グループが決まったあとの、本来の起動処理
+async function startAfterGroup() {
+  // 保存済みのパスワードが有効期限内ならそのまま開始、なければ入力を求める
+  BOOTH_KEY = loadSavedAuth();
+  if (!BOOTH_KEY) {
+    document.getElementById('headerBoothName').textContent = '認証してください';
+    showBoothLock('');
+    return;
+  }
+  try {
+    const result = await apiGet('getBoothByToken', { token: TOKEN });
+    startBooth(result.booth);
+  } catch(e) {
+    if (e.code === 'booth_auth') {
+      BOOTH_KEY = '';
+      localStorage.removeItem(AUTH_STORE_KEY);
+      document.getElementById('headerBoothName').textContent = '認証してください';
+      showBoothLock('パスワードを再入力してください');
+    } else {
+      showError();
+    }
+  }
+}
+
+// ============================================================
+// ★㉓ グループ判定中／グループ手動選択の画面
+//   HTML本体はいじらず、必要なときだけ画面に重ねて出します。
+// ============================================================
+function removeGroupOverlay_() {
+  const old = document.getElementById('groupOverlay');
+  if (old && old.parentNode) old.parentNode.removeChild(old);
+}
+function hideGroupOverlay() { removeGroupOverlay_(); }
+
+function buildGroupOverlay_(innerHtml) {
+  removeGroupOverlay_();
+  const box = document.createElement('div');
+  box.id = 'groupOverlay';
+  box.setAttribute('style',
+    'position:fixed;inset:0;z-index:9999;background:#ffffff;' +
+    'display:flex;align-items:center;justify-content:center;padding:24px;' +
+    'font-family:sans-serif;');
+  box.innerHTML =
+    '<div style="max-width:420px;width:100%;text-align:center;">' + innerHtml + '</div>';
+  document.body.appendChild(box);
+  return box;
+}
+
+function showGroupChecking() {
+  buildGroupOverlay_(
+    '<div style="font-size:17px;color:#1a3a9e;font-weight:bold;margin-bottom:10px;">' +
+    '接続先を確認しています</div>' +
+    '<div style="font-size:14px;color:#555;line-height:1.7;">' +
+    'そのままお待ちください（数秒）</div>');
+}
+
+function showGroupPicker() {
+  let btns = '';
+  const keys = ['a', 'b', 'c', 'd'];
+  for (let i = 0; i < keys.length; i++) {
+    const g = keys[i];
+    if (!isValidGroup(g)) continue;
+    btns +=
+      '<button type="button" data-group="' + g + '" ' +
+      'style="display:block;width:100%;margin:10px 0;padding:18px;font-size:20px;' +
+      'font-weight:bold;color:#fff;background:#1a3a9e;border:none;border-radius:10px;">' +
+      'グループ ' + GROUP_LABELS[g] + '</button>';
+  }
+
+  const box = buildGroupOverlay_(
+    '<div style="font-size:18px;font-weight:bold;color:#1a3a9e;margin-bottom:8px;">' +
+    'グループを選んでください</div>' +
+    '<div style="font-size:14px;color:#555;line-height:1.7;margin-bottom:18px;">' +
+    'ご案内のメールに書かれているグループ（A〜D）のボタンを押してください。<br>' +
+    'わからない場合は事務局までお声がけください。</div>' +
+    btns +
+    '<div style="font-size:12px;color:#888;margin-top:16px;line-height:1.6;">' +
+    '一度選ぶと、この端末では次回から自動で接続します。</div>');
+
+  const list = box.querySelectorAll('button[data-group]');
+  for (let i = 0; i < list.length; i++) {
+    list[i].addEventListener('click', function() {
+      applyGroup(this.getAttribute('data-group'));
+      removeGroupOverlay_();
+      startAfterGroup();
+    });
+  }
+}
+
+async function startBooth(booth) {
+  boothInfo = booth;
+  document.getElementById('headerBoothName').textContent =
+    (boothInfo.booth_number ? boothInfo.booth_number + '番　' : '') + boothInfo.company;
+  document.getElementById('errorScreen').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('logoutBtn').style.display = 'block';
+  setProductOptions(boothInfo.products);
+  await loadSamples();
+}
+
+function showError() {
+  document.getElementById('errorScreen').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('headerBoothName').textContent = 'アクセスエラー';
+}
+
+// ============================================================
+// ★ 商品の複数選択（タップ式）＋ 商品ごとの数量
+//
+// selectedProductSet は
+//   { 0: { name: '商品A', qty: 2 }, 3: { name: 'その他', qty: 1 } }
+// のような形で「選んだ商品」と「その数量」を持つ。
+// 商品名の部分をタップ＝選択／解除、右の「−」「＋」＝数量の増減。
+// ボタンは別の領域に置いてあるので、数量を押しても選択は外れない。
+// ============================================================
+var selectedProductSet = {};
+var MAX_ITEM_QTY = 999;
+
+function setProductOptions(productsStr) {
+  const list = document.getElementById('sr-product-list');
+  const products = String(productsStr || '').split(',').map(p => p.trim()).filter(Boolean);
+  products.push('その他');
+  list.innerHTML = products.map(function(p, i) {
+    return '<div class="product-item" id="pi-' + i + '">'
+      +   '<div class="product-main" onclick="toggleProduct(' + i + ')">'
+      +     '<span class="product-check" id="pc-' + i + '"></span>'
+      +     '<span class="product-item-name"></span>'
+      +   '</div>'
+      +   '<div class="product-qty" id="pq-' + i + '">'
+      +     '<button type="button" class="btn-qty-item" onclick="changeItemQty(' + i + ',-1)" aria-label="数量を減らす">−</button>'
+      +     '<span class="qty-num-item" id="qn-' + i + '">1</span>'
+      +     '<button type="button" class="btn-qty-item" onclick="changeItemQty(' + i + ',1)" aria-label="数量を増やす">＋</button>'
+      +   '</div>'
+      + '</div>';
+  }).join('');
+  // 商品名はtextContentで入れる（HTML扱いによる崩れを防ぐ）
+  products.forEach(function(p, i) {
+    document.querySelector('#pi-' + i + ' .product-item-name').textContent = p;
+  });
+  selectedProductSet = {};
+  updateProductCount();
+  updateOtherInput();
+}
+
+function toggleProduct(i) {
+  var item = document.getElementById('pi-' + i);
+  if (!item) return;
+  var name = item.querySelector('.product-item-name').textContent;
+  var check = document.getElementById('pc-' + i);
+  if (selectedProductSet[i]) {
+    delete selectedProductSet[i];
+    item.classList.remove('selected');
+    if (check) check.textContent = '';
+    setQtyLabel(i, 1); // 次に選んだときは1から
+  } else {
+    selectedProductSet[i] = { name: name, qty: 1 };
+    item.classList.add('selected');
+    if (check) check.textContent = '✓';
+    setQtyLabel(i, 1);
+  }
+  updateProductCount();
+  updateOtherInput();
+}
+
+// ★ 商品ごとの数量を増減する
+function changeItemQty(i, delta) {
+  var entry = selectedProductSet[i];
+  if (!entry) {
+    // 数量ボタンを先に押した場合は、その商品を選択した扱いにする
+    toggleProduct(i);
+    entry = selectedProductSet[i];
+    if (!entry) return;
+    if (delta > 0) { /* ＋を押して選択された場合は1のまま */ }
+    updateProductCount();
+    return;
+  }
+  var next = entry.qty + delta;
+  if (next < 1) {
+    showToast('数量は1以上です。外す場合は商品名をタップしてください');
+    return;
+  }
+  if (next > MAX_ITEM_QTY) return;
+  entry.qty = next;
+  setQtyLabel(i, next);
+  updateProductCount();
+}
+
+function setQtyLabel(i, q) {
+  var el = document.getElementById('qn-' + i);
+  if (el) el.textContent = q;
+}
+
+function updateProductCount() {
+  var count = 0, total = 0;
+  for (var k in selectedProductSet) {
+    count++;
+    total += selectedProductSet[k].qty;
+  }
+  document.getElementById('sr-count').textContent =
+    count === 0 ? '0件選択中' : (count + '件選択中　合計' + total + '個');
+}
+
+function updateOtherInput() {
+  var otherChecked = false;
+  for (var k in selectedProductSet) {
+    if (selectedProductSet[k].name === 'その他') { otherChecked = true; break; }
+  }
+  document.getElementById('other-input-wrap').style.display = otherChecked ? 'block' : 'none';
+  if (!otherChecked) document.getElementById('sr-other-text').value = '';
+}
+
+function selectAllProducts() {
+  var items = document.querySelectorAll('#sr-product-list .product-item');
+  items.forEach(function(item, i) {
+    var name = item.querySelector('.product-item-name').textContent;
+    if (!selectedProductSet[i]) {
+      selectedProductSet[i] = { name: name, qty: 1 };
+      setQtyLabel(i, 1);
+    }
+    item.classList.add('selected');
+    var check = document.getElementById('pc-' + i);
+    if (check) check.textContent = '✓';
+  });
+  updateProductCount();
+  updateOtherInput();
+}
+
+function clearProducts() {
+  selectedProductSet = {};
+  document.querySelectorAll('#sr-product-list .product-item').forEach(function(item, i) {
+    item.classList.remove('selected');
+    var check = document.getElementById('pc-' + i);
+    if (check) check.textContent = '';
+    setQtyLabel(i, 1);
+  });
+  updateProductCount();
+  updateOtherInput();
+}
+
+// ============================================================
+// API
+// ============================================================
+
+// ============================================================
+// ★ 自動リトライ付き通信
+// 回線混雑やGASの同時実行上限で失敗したとき、
+// 少し待って自動でやり直す（最大4回。待ち時間は倍々＋ランダム）
+// ============================================================
+async function fetchJsonWithRetry(url, options) {
+  let lastError;
+  for (let attempt = 0; attempt <= 4; attempt++) {
+    if (attempt > 0) {
+      const wait = Math.min(500 * Math.pow(2, attempt - 1), 4000) + Math.random() * 400;
+      await new Promise(res => setTimeout(res, wait));
+    }
+    try {
+      const resp = await fetch(url, options);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
+// エラーの種類（error）とメッセージ（message）を両方持たせて投げる
+function makeApiError(data) {
+  const err = new Error(data.message || data.error || 'エラーが発生しました');
+  err.code = data.error || '';
+  return err;
+}
+
+async function apiGet(action, params = {}) {
+  let url = GAS_URL + '?action=' + action + '&boothKey=' + encodeURIComponent(BOOTH_KEY);
+  for (let key in params) url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+  const data = await fetchJsonWithRetry(url);
+  if (!data.success && data.error) throw makeApiError(data);
+  return data;
+}
+
+async function apiPost(action, body = {}) {
+  const url = GAS_URL + '?action=' + action;
+  body.boothKey = BOOTH_KEY;
+  const data = await fetchJsonWithRetry(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  });
+  if (!data.success && data.error) throw makeApiError(data);
+  return data;
+}
+
+// ============================================================
+// カメラ
+// ============================================================
+function startCamera() {
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('cameraWrap').classList.add('active');
+
+  html5QrCode = new Html5Qrcode('qr-reader');
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    { fps: 15, qrbox: { width: 260, height: 260 }, aspectRatio: 1.0 },
+    onQrSuccess,
+    () => {}
+  ).then(() => {
+    isScanning = true;
+    scanPaused = false;
+    setStatus('scanning', 'スキャン待機中');
+  }).catch(() => {
+    showToast('カメラの起動に失敗しました');
+    document.getElementById('startBtn').style.display = 'flex';
+    document.getElementById('cameraWrap').classList.remove('active');
+  });
+}
+
+function stopCamera() {
+  hideOverlay();
+  if (html5QrCode && isScanning) {
+    html5QrCode.stop().then(() => {
+      isScanning = false;
+      html5QrCode = null;
+    });
+  }
+  document.getElementById('cameraWrap').classList.remove('active');
+  document.getElementById('startBtn').style.display = 'flex';
+}
+
+function setStatus(type, text) {
+  const el = document.getElementById('cameraStatus');
+  el.textContent = text;
+  el.className = 'camera-status ' + type;
+}
+
+// ============================================================
+// QRスキャン成功
+// ============================================================
+function onQrSuccess(decodedText) {
+  if (scanCooldown || scanPaused) return;
+  scanCooldown = true;
+  setTimeout(() => { scanCooldown = false; }, 3000);
+
+  let visitorId = decodedText.trim().toUpperCase();
+  // URLの場合はIDだけ取り出す
+  try {
+    const url = new URL(decodedText);
+    const id = url.searchParams.get('id');
+    if (id) visitorId = id.toUpperCase();
+  } catch(e) {}
+
+  if (!visitorId) { showToast('QRコードを認識できませんでした'); return; }
+
+  touchActivity();
+  scanPaused = true;
+  if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
+  setStatus('paused', '確認中…');
+
+  showOverlayLoading();
+  processVisitor(visitorId);
+}
+
+// ============================================================
+// 来場者処理
+// ============================================================
+async function processVisitor(visitorId) {
+  currentVisitorId = visitorId;
+  try {
+    const result = await apiGet('getVisitorInfo', { visitorId: visitorId, token: TOKEN });
+    currentVisitorData = result.visitor;
+    showOverlayPreview(result.visitor);
+  } catch(e) {
+    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+      return;
+    }
+    showOverlayError('来場者が見つかりません', 'ID: ' + visitorId);
+  }
+}
+
+async function confirmVisit() {
+  if (!currentVisitorId || !currentVisitorData) return;
+  document.getElementById('overlayButtons').style.display = 'none';
+  showOverlayLoading();
+  document.getElementById('overlayName').textContent = '記録しています…';
+
+  try {
+    await apiPost('boothVisitByToken', {
+      token: TOKEN,
+      visitorId: currentVisitorId
+    });
+    hideOverlay();
+
+    // 来場者パネルを表示
+    document.getElementById('visitorName').textContent = currentVisitorData.name;
+    document.getElementById('visitorCompany').textContent =
+      currentVisitorData.company + (currentVisitorData.department ? '　' + currentVisitorData.department : '');
+    document.getElementById('visitorPanel').style.display = 'block';
+    clearProducts();
+    document.getElementById('sr-notes').value = '';
+    document.getElementById('sampleAlert').classList.remove('show');
+
+    playBeep(600);
+    setTimeout(() => document.getElementById('visitorPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+    if (isScanning) { try { html5QrCode.resume(); } catch(e) {} }
+    setStatus('scanning', 'スキャン待機中');
+    scanPaused = false;
+
+  } catch(e) {
+    if (e.code === 'not_checked_in') {
+      // ★ エラーコードではなく、分かりやすい日本語で案内する
+      showOverlayNotCheckedIn(e.message);
+    } else if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    } else {
+      showOverlayError('エラーが発生しました', e.message);
+    }
+  }
+}
+
+function cancelScan() {
+  currentVisitorId = null;
+  currentVisitorData = null;
+  resetScan();
+}
+
+function resetScan() {
+  hideOverlay();
+  currentVisitorId = null;
+  currentVisitorData = null;
+  scanCooldown = false;
+  scanPaused = false;
+  if (html5QrCode && isScanning) {
+    try { html5QrCode.resume(); } catch(e) {}
+    setStatus('scanning', 'スキャン待機中');
+  }
+}
+
+// ============================================================
+// 手動入力
+// ============================================================
+function manualProcess() {
+  const id = document.getElementById('manualId').value.trim().toUpperCase();
+  if (!id) { showToast('IDを入力してください'); return; }
+  document.getElementById('manualId').value = '';
+
+  currentVisitorId = id;
+  scanPaused = true;
+
+  // ★ カメラが起動していない場合でも、オーバーレイは画面全体に出るので
+  //    カメラ枠を無理やり表示する必要はない（ボタンが隠れる原因だった）
+  if (isScanning) {
+    if (html5QrCode) { try { html5QrCode.pause(true); } catch(e) {} }
+    setStatus('paused', '確認中…');
+  }
+
+  showOverlayLoading();
+  processVisitor(id);
+}
+
+// ============================================================
+// ★ サンプル依頼（商品ごとに数量を送る）
+// 選んだ商品を items 配列にして1回の通信でまとめて送り、
+// GAS側で「商品1つ＝1行」としてスプレッドシートに書き込む。
+// ============================================================
+async function submitSampleRequest() {
+  if (!currentVisitorId) return;
+
+  var otherText = document.getElementById('sr-other-text').value.trim();
+  var items = [];
+  var labels = [];
+  var totalQty = 0;
+
+  for (var k in selectedProductSet) {
+    var entry = selectedProductSet[k];
+    var nm = entry.name;
+    if (nm === 'その他') nm = otherText ? 'その他：' + otherText : 'その他';
+    var q = parseInt(entry.qty, 10);
+    if (!q || q < 1) q = 1;
+    items.push({ product_name: nm, quantity: q });
+    labels.push(nm + '×' + q);
+    totalQty += q;
+  }
+
+  if (items.length === 0) {
+    showAlert('error', '商品を1つ以上選択してください');
+    return;
+  }
+
+  // ★ 押したことが分かるように、ボタンを「送信中」に変える（二重送信も防ぐ）
+  setSampleSending(true);
+  showAlert('sending', '📤 送信中です… 処理に時間がかかります。そのままお待ちください');
+
+  try {
+    await apiPost('sampleRequestByToken', {
+      token: TOKEN,
+      visitorId: currentVisitorId,
+      items: items,
+      // ↓ 旧バージョンのGASでも記録が消えないための保険（新GASでは使われません）
+      product_name: labels.join('、'),
+      quantity: totalQty,
+      notes: document.getElementById('sr-notes').value
+    });
+    setSampleSending(false);
+    showAlert('success', '✅ サンプル依頼を送信しました！（' + items.length + '品目・合計' + totalQty + '個）');
+    playBeep(800);
+    currentVisitorId = null;
+    currentVisitorData = null;
+    setTimeout(() => {
+      document.getElementById('visitorPanel').style.display = 'none';
+      clearProducts();
+      loadSamples();
+    }, 2000);
+  } catch(e) {
+    setSampleSending(false);
+    if (e.code === 'not_checked_in') {
+      showAlert('error', e.message);
+    } else if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    } else {
+      showAlert('error', 'エラー: ' + e.message);
+    }
+  }
+}
+
+// ★ 送信中かどうかで、ボタンの見た目を切り替える
+function setSampleSending(sending) {
+  const btn   = document.getElementById('sampleSubmitBtn');
+  const visit = document.getElementById('visitOnlyBtn');
+  if (!btn) return;
+  btn.disabled = sending;
+  if (visit) visit.disabled = sending;
+  btn.innerHTML = sending
+    ? '<span class="btn-spinner"></span>　送信中です… お待ちください'
+    : '📦 サンプル依頼を送信';
+  btn.style.opacity = sending ? '0.7' : '';
+}
+
+async function recordVisitOnly() {
+  showAlert('success', '✅ 訪問を記録しました');
+  currentVisitorId = null;
+  currentVisitorData = null;
+  setTimeout(() => {
+    document.getElementById('visitorPanel').style.display = 'none';
+  }, 1500);
+}
+
+// ============================================================
+// サンプル一覧（数量修正・取消ボタンつき）
+// ============================================================
+async function loadSamples() {
+  try {
+    const result = await apiGet('getBoothSamplesByToken', { token: TOKEN });
+    const samples = result.data || [];
+    currentSamples = samples;
+    const tbody = document.getElementById('sampleTable');
+    if (samples.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:20px;">まだ依頼はありません</td></tr>';
+      return;
+    }
+    tbody.innerHTML = samples.map(s => {
+      const isCancelled = s.status === '取消';
+      const statusClass = isCancelled ? 'tag-cancel'
+        : (s.status === '完了' || s.status === '発送済み') ? 'tag-done' : 'tag-pending';
+      const time = s.requested_at ? new Date(s.requested_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+      const qty = parseInt(s.quantity, 10) || 1;
+
+      let qtyCell = '<span class="qty-num">' + qty + '</span>';
+      let opCell = '';
+      if (!isCancelled) {
+        qtyCell = '<div class="qty-cell">'
+          + '<button class="btn-qty" onclick="changeQty(\'' + s.id + '\', -1)">−</button>'
+          + '<span class="qty-num">' + qty + '</span>'
+          + '<button class="btn-qty" onclick="changeQty(\'' + s.id + '\', 1)">＋</button>'
+          + '</div>';
+        opCell = '<button class="btn-cancel-sample" onclick="cancelSample(\'' + s.id + '\')">取消</button>';
+      }
+
+      return '<tr class="' + (isCancelled ? 'row-cancel' : '') + '">'
+        + '<td>' + time + '</td>'
+        + '<td>' + escapeHtml(s.visitor_name || '') + '</td>'
+        + '<td>' + escapeHtml(s.visitor_company || '') + '</td>'
+        + '<td>' + escapeHtml(s.product_name || '') + '</td>'
+        + '<td>' + qtyCell + '</td>'
+        + '<td><span class="tag ' + statusClass + '">' + escapeHtml(s.status || '') + '</span></td>'
+        + '<td>' + opCell + '</td>'
+        + '</tr>';
+    }).join('');
+  } catch(e) {
+    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    }
+    console.error(e);
+  }
+}
+
+// ============================================================
+// ★ 数量の修正（−／＋ボタン）
+// ============================================================
+let qtyBusy = false;
+async function changeQty(sampleId, delta) {
+  if (qtyBusy) return; // 連打防止
+  const s = currentSamples.find(x => x.id === sampleId);
+  if (!s) return;
+  const current = parseInt(s.quantity, 10) || 1;
+  const newQty = current + delta;
+  if (newQty < 1) { showToast('数量は1以上です。取り消す場合は「取消」を押してください'); return; }
+  if (newQty > 999) return;
+
+  qtyBusy = true;
+  try {
+    await apiPost('updateSampleByToken', { token: TOKEN, sampleId: sampleId, quantity: newQty });
+    s.quantity = newQty; // 画面の値も更新
+    await loadSamples();
+  } catch(e) {
+    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    } else {
+      showToast('修正できませんでした：' + e.message);
+    }
+  } finally {
+    qtyBusy = false;
+  }
+}
+
+// ============================================================
+// ★ 依頼の取消（データは消えず「取消」として残る）
+// ============================================================
+async function cancelSample(sampleId) {
+  if (!confirm('このサンプル依頼を取り消しますか？')) return;
+  try {
+    await apiPost('cancelSampleByToken', { token: TOKEN, sampleId: sampleId });
+    showToast('依頼を取り消しました');
+    await loadSamples();
+  } catch(e) {
+    if (e.code === 'booth_auth' || e.code === 'unauthorized') {
+      boothLogout('認証が切れました。パスワードを再入力してください');
+    } else {
+      showToast('取消できませんでした：' + e.message);
+    }
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ============================================================
+// オーバーレイ
+// ============================================================
+function showOverlayLoading() {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay loading show';
+  document.body.classList.add('overlay-open');
+  ov.scrollTop = 0;
+  document.getElementById('overlayIcon').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('overlayName').textContent = '確認しています…';
+  document.getElementById('overlayCompany').textContent = '';
+  document.getElementById('overlayMessage').textContent = '処理に時間がかかります。そのままお待ちください';
+  document.getElementById('overlayTime').textContent = '';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'none';
+}
+
+function showOverlayPreview(v) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay preview show';
+  document.body.classList.add('overlay-open');
+  ov.scrollTop = 0;
+  document.getElementById('overlayIcon').textContent = '👤';
+  document.getElementById('overlayName').textContent = v.name;
+  document.getElementById('overlayCompany').textContent = v.company + (v.department ? '　' + v.department : '');
+  document.getElementById('overlayMessage').textContent = 'この方のQRを読み取りました';
+  document.getElementById('overlayTime').textContent = 'ID: ' + currentVisitorId;
+  document.getElementById('overlayButtons').style.display = 'flex';
+  document.getElementById('overlayNext').style.display = 'none';
+}
+
+// ★ 入口未受付の来場者向けの案内表示（エラーコードは見せない）
+function showOverlayNotCheckedIn(message) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay warning show';
+  document.body.classList.add('overlay-open');
+  ov.scrollTop = 0;
+  document.getElementById('overlayIcon').textContent = '🙏';
+  document.getElementById('overlayName').textContent = '入口受付がお済みでないようです';
+  document.getElementById('overlayCompany').textContent = '';
+  document.getElementById('overlayMessage').textContent = message ||
+    'この来場者様は、まだ入口での受付が完了していません。入口受付にご案内いただき、受付後にもう一度QRコードを読み取ってください。';
+  document.getElementById('overlayTime').textContent = '';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'block';
+  document.getElementById('overlayNextBtn').textContent = '次の来場者へ →';
+}
+
+function showOverlayError(title, sub) {
+  const ov = document.getElementById('overlay');
+  ov.className = 'overlay error show';
+  document.body.classList.add('overlay-open');
+  ov.scrollTop = 0;
+  document.getElementById('overlayIcon').textContent = '❌';
+  document.getElementById('overlayName').textContent = title;
+  document.getElementById('overlayCompany').textContent = sub;
+  document.getElementById('overlayMessage').textContent =
+    'IDの入力間違いの可能性があります。「閉じる」を押してから、もう一度QRを読み取るか、IDを入力し直してください。';
+  document.getElementById('overlayTime').textContent = '';
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'block';
+  document.getElementById('overlayNextBtn').textContent = '閉じる';
+}
+
+function hideOverlay() {
+  document.getElementById('overlay').className = 'overlay';
+  document.body.classList.remove('overlay-open');
+  document.getElementById('overlayButtons').style.display = 'none';
+  document.getElementById('overlayNext').style.display = 'none';
+}
+
+// ============================================================
+// アラート・音・トースト
+// ============================================================
+function showAlert(type, message) {
+  const el = document.getElementById('sampleAlert');
+  el.className = 'alert alert-' + type + ' show';
+  el.textContent = message;
+  if (type === 'success') setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function playBeep(freq) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    gain.gain.value = 0.3;
+    osc.frequency.value = freq;
+    osc.start(); osc.stop(ctx.currentTime + 0.12);
+  } catch(e) {}
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// 起動
+// ============================================================
+window.onload = function() {
+  init();
+  setInterval(function() { if (BOOTH_KEY) loadSamples(); }, 60000);
+};
+</script>
+</body>
+</html>
