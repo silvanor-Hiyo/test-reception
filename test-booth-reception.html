@@ -4,7 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ブース受付 - 永和物産 食品展示会2026</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="html5-qrcode.min.js"></script>
+<script>
+if (typeof Html5Qrcode === 'undefined') {
+  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"><\/script>');
+}
+</script>
 <style>
 :root {
   --navy: #0d1f5c;
