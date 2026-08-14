@@ -1190,8 +1190,8 @@ function loadCheckins() {
         return '<div class="log-item">'
           + '<div class="log-time">' + time + '</div>'
           + '<div class="log-info">'
-          + '<div class="log-name">' + (c.visitor_name||'不明') + '</div>'
-          + '<div class="log-company">' + (c.visitor_company||'') + '</div>'
+          + '<div class="log-name">' + escapeHtml(c.visitor_name||'不明') + '</div>'
+          + '<div class="log-company">' + escapeHtml(c.visitor_company||'') + '</div>'
           + '</div>'
           + '<div class="log-badge">受付済</div>'
           + '</div>';
