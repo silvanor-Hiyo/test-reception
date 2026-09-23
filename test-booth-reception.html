@@ -94,12 +94,26 @@ main { max-width: 560px; margin: 0 auto; padding: 16px; }
 .camera-status { font-size: 11px; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 12px; }
 .camera-status.scanning { color: #4caf50; background: rgba(76,175,80,0.15); }
 .camera-status.paused { color: var(--gold-light); background: rgba(200,168,75,0.15); }
+/* ★ サンプル選択中の一時停止表示 */
+.camera-status.selecting { color: var(--navy); background: var(--gold-light); font-weight: 700; }
 
-#qr-reader { width: 100%; background: #000; }
+#qr-reader { width: 100%; background: #000; transition: opacity 0.2s; }
 #qr-reader video { width: 100% !important; max-height: 300px; object-fit: cover; }
 #qr-reader__scan_region { background: transparent !important; }
 #qr-reader__scan_region img { display: none !important; }
 #qr-reader__dashboard { display: none !important; }
+
+/* ★ サンプル選択中はカメラ映像を暗くして、上に「一時停止中」の帯を出す */
+.camera-pause-banner {
+  display: none;
+  background: var(--gold-light); color: var(--navy);
+  padding: 12px 16px; text-align: center;
+  font-size: 15px; font-weight: 700; line-height: 1.5;
+  border-bottom: 2px solid var(--gold);
+}
+.camera-pause-banner small { display: block; font-size: 12px; font-weight: 600; margin-top: 2px; }
+.camera-wrap.selecting .camera-pause-banner { display: block; }
+.camera-wrap.selecting #qr-reader { opacity: 0.3; }
 
 .camera-guide {
   background: rgba(0,0,0,0.6); padding: 10px 16px;
@@ -399,6 +413,11 @@ tr.row-cancel td:last-child, tr.row-cancel td .tag { text-decoration: none; }
       <div class="camera-title"><span>📷</span> QRコードをスキャン中</div>
       <div class="camera-status scanning" id="cameraStatus">スキャン待機中</div>
     </div>
+    <!-- ★ サンプル選択中だけ表示される「一時停止中」の帯 -->
+    <div class="camera-pause-banner" id="cameraPauseBanner">
+      ⏸ サンプル選択中のため一時停止中
+      <small>「サンプル依頼を送信」か「訪問のみ」を押すと再開します</small>
+    </div>
     <div id="qr-reader"></div>
     <div class="camera-guide">来場者の入場証QRコードをカメラに向けてください</div>
 
@@ -682,6 +701,9 @@ let html5QrCode = null;
 let isScanning = false;
 let scanPaused = false;
 let scanCooldown = false;
+// ★ サンプル選択中（＝カメラの読み取りを一時停止している）かどうか
+let selectingSample = false;
+let pauseToastCooldown = false;
 
 // ============================================================
 // 初期化
@@ -1044,8 +1066,14 @@ function startCamera() {
     () => {}
   ).then(() => {
     isScanning = true;
-    scanPaused = false;
-    setStatus('scanning', 'スキャン待機中');
+    // ★ サンプル選択中にカメラを起動し直した場合は、一時停止のまま
+    if (selectingSample) {
+      scanPaused = true;
+      setStatus('selecting', '⏸ 一時停止中');
+    } else {
+      scanPaused = false;
+      setStatus('scanning', 'スキャン待機中');
+    }
   }).catch(() => {
     showToast('カメラの起動に失敗しました');
     document.getElementById('startBtn').style.display = 'flex';
@@ -1072,9 +1100,42 @@ function setStatus(type, text) {
 }
 
 // ============================================================
+// ★ サンプル選択中の「読み取り一時停止」
+//   カメラの電源は切らない（映像は動いたまま）。
+//   QRを読んでも無視するだけなので、カメラの許可の聞き直しや
+//   再起動の失敗は起きない。
+// ============================================================
+function enterSelectingMode() {
+  selectingSample = true;
+  scanPaused = true;
+  document.getElementById('cameraWrap').classList.add('selecting');
+  setStatus('selecting', '⏸ 一時停止中');
+}
+
+function exitSelectingMode() {
+  selectingSample = false;
+  scanPaused = false;
+  scanCooldown = false;
+  document.getElementById('cameraWrap').classList.remove('selecting');
+  if (html5QrCode && isScanning) {
+    try { html5QrCode.resume(); } catch(e) {}
+  }
+  setStatus('scanning', 'スキャン待機中');
+}
+
+// ============================================================
 // QRスキャン成功
 // ============================================================
 function onQrSuccess(decodedText) {
+  // ★ サンプル選択中は読み取らない（案内だけ出す。3秒に1回まで）
+  if (selectingSample) {
+    if (!pauseToastCooldown) {
+      pauseToastCooldown = true;
+      showToast('⏸ サンプル選択中です。送信か「訪問のみ」を押してください');
+      setTimeout(() => { pauseToastCooldown = false; }, 3000);
+    }
+    return;
+  }
   if (scanCooldown || scanPaused) return;
   scanCooldown = true;
   setTimeout(() => { scanCooldown = false; }, 3000);
@@ -1141,9 +1202,9 @@ async function confirmVisit() {
     playBeep(600);
     setTimeout(() => document.getElementById('visitorPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 
-    if (isScanning) { try { html5QrCode.resume(); } catch(e) {} }
-    setStatus('scanning', 'スキャン待機中');
-    scanPaused = false;
+    // ★ カメラの映像は動かしたまま、読み取りだけ一時停止にする
+    if (html5QrCode && isScanning) { try { html5QrCode.resume(); } catch(e) {} }
+    enterSelectingMode();
 
   } catch(e) {
     if (e.code === 'not_checked_in') {
@@ -1168,6 +1229,15 @@ function resetScan() {
   currentVisitorId = null;
   currentVisitorData = null;
   scanCooldown = false;
+  // ★ サンプル選択中なら、映像だけ戻して読み取りは一時停止のまま
+  if (selectingSample) {
+    scanPaused = true;
+    if (html5QrCode && isScanning) {
+      try { html5QrCode.resume(); } catch(e) {}
+      setStatus('selecting', '⏸ 一時停止中');
+    }
+    return;
+  }
   scanPaused = false;
   if (html5QrCode && isScanning) {
     try { html5QrCode.resume(); } catch(e) {}
@@ -1249,8 +1319,10 @@ async function submitSampleRequest() {
       document.getElementById('visitorPanel').style.display = 'none';
       clearProducts();
       loadSamples();
+      exitSelectingMode(); // ★ 送信が終わったら読み取りを再開
     }, 2000);
   } catch(e) {
+    // ★ 送信に失敗したときは一時停止のまま（選んだ商品も残る）
     setSampleSending(false);
     if (e.code === 'not_checked_in') {
       showAlert('error', e.message);
@@ -1281,6 +1353,8 @@ async function recordVisitOnly() {
   currentVisitorData = null;
   setTimeout(() => {
     document.getElementById('visitorPanel').style.display = 'none';
+    clearProducts();
+    exitSelectingMode(); // ★ 読み取りを再開
   }, 1500);
 }
 
